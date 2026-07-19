@@ -39,3 +39,6 @@ backend/.mvn/wrapper/maven-wrapper.jar
 
 # 排除含有隐私密码的真实本地配置文件 (只提交 application.yaml.example 模板)
 backend/src/main/resources/application.yaml
+
+# 第三方 SDK 临时目录及日志
+graphAuthSDK_WEB_H5_v1.0.0_operator_ui_log_static/
