@@ -1,0 +1,110 @@
+package com.hmdp.service.impl;
+
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.bean.copier.CopyOptions;
+import cn.hutool.core.lang.UUID;
+import cn.hutool.core.util.RandomUtil;
+import com.hmdp.constant.RedisConstants;
+import com.hmdp.dto.CaptchaCodeDTO;
+import com.hmdp.dto.LoginFormDTO;
+import com.hmdp.dto.Result;
+import com.hmdp.dto.UserDTO;
+import com.hmdp.entity.User;
+import com.hmdp.exception.BusinessException;
+import com.hmdp.mapper.UserMapper;
+import com.hmdp.service.IUserService;
+import com.hmdp.utils.AliyunCaptchaHelper;
+import com.hmdp.utils.AliyunSmsHelper;
+import com.hmdp.utils.RegexUtils;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Service;
+
+import javax.servlet.http.HttpSession;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+@Service
+@Slf4j
+@RequiredArgsConstructor
+public class UserServiceImpl implements IUserService {
+
+    private final UserMapper userMapper;
+    private final AliyunSmsHelper aliyunSmsHelper;
+    private final AliyunCaptchaHelper aliyunCaptchaHelper;
+    private final StringRedisTemplate stringRedisTemplate;
+
+    @Override
+    public User getById(Long id) {
+        return userMapper.getById(id);
+    }
+
+    @Override
+    public Result<String> sendCode(CaptchaCodeDTO dto, HttpSession session) {
+        String phone = dto.getPhone();
+        if (RegexUtils.isPhoneInvalid(phone)) {
+            throw new BusinessException("手机号格式错误！！！");
+        }
+
+        // 1. 调用阿里云图形验证码二次校验
+        boolean captchaPass = aliyunCaptchaHelper.verifyCaptcha(
+                dto.getLotNumber(),
+                dto.getCaptchaOutput(),
+                dto.getPassToken(),
+                dto.getGenTime()
+        );
+        if (!captchaPass) {
+            throw new BusinessException("人机验证未通过，请重新尝试");
+        }
+
+        // 2. 验证通过后发送短信验证码
+        aliyunSmsHelper.sendSmsCode(phone);
+        return Result.success();
+    }
+
+    @Override
+    public Result<String> login(LoginFormDTO loginForm, HttpSession session) {
+        String phone = loginForm.getPhone();
+        String userInputCode = loginForm.getCode();
+        if (RegexUtils.isPhoneInvalid(phone)) {
+            throw new BusinessException("手机号格式错误！！！");
+        }
+
+        // 调用封装好的阿里云短信助手核验验证码
+        boolean verifyPass = aliyunSmsHelper.verifySmsCode(phone, userInputCode);
+        if (!verifyPass) {
+            throw new BusinessException("验证码核验失败！！！");
+        }
+
+        User user = userMapper.getByPhone(phone);
+        if (user == null) {
+            user = new User();
+            user.setPhone(phone);
+            user.setNickName("user_" + RandomUtil.randomNumbers(10));
+            userMapper.save(user);
+        }
+
+        // 1. 随机生成 token，作为登录令牌
+        String token = UUID.randomUUID().toString(true);
+        log.info("token:{}", token);
+
+        // 2. 将 User 转换为 UserDTO
+        UserDTO userDTO = BeanUtil.copyProperties(user, UserDTO.class);
+
+        // 3. 将 UserDTO 对象转为 Map，并确保所有字段的值均为 String 类型，防止 Redis Hash 存入报错
+        Map<String, Object> userMap = BeanUtil.beanToMap(userDTO, new HashMap<>(),
+                CopyOptions.create()
+                        .setIgnoreNullValue(true)
+                        .setFieldValueEditor((fieldName, fieldValue) -> fieldValue == null ? "" : fieldValue.toString()));
+        // 4. 以 Hash 结构存储用户数据到 Redis
+        String tokenKey = RedisConstants.LOGIN_USER_KEY + token;
+        stringRedisTemplate.opsForHash().putAll(tokenKey, userMap);
+        // 5. 设置 token 的有效期（30分钟）
+        stringRedisTemplate.expire(tokenKey, RedisConstants.LOGIN_USER_TTL, TimeUnit.SECONDS);
+
+        // 6. 返回 token 给前端
+        return Result.success(token);
+    }
+}

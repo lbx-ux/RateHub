@@ -1,0 +1,41 @@
+# =========================================================================
+# Global gitignore for RateHub (Mono-repo)
+# =========================================================================
+
+# Logs
+**/logs
+**/*.log
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/pnpm-debug.log*
+**/lerna-debug.log*
+
+# Editor & System directories and files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.iml
+.DS_Store
+Thumbs.db
+
+# =========================================================================
+# Frontend (Vue3 / Vite)
+# =========================================================================
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/*.local
+
+# =========================================================================
+# Backend (Spring Boot / Maven)
+# =========================================================================
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# 排除含有隐私密码的真实本地配置文件 (只提交 application.yaml.example 模板)
+backend/src/main/resources/application.yaml

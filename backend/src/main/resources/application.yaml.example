@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: hmdp #这个是当前项目的名字
+  datasource:
+    url: jdbc:mysql://localhost:3306/hmdp #连接的数据库的名字
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: <your_database_username> #数据库账号
+    password: <your_database_password> #数据库密码
+  servlet:
+    multipart: #与文件上传有关
+      max-file-size: 10MB #上传的最大单个文件大小
+      max-request-size: 10MB #最大请求大小（包括所有文件和表单数据）
+  redis:
+    host: <your_redis_host>
+    port: 6379
+    password: <your_redis_password>
+    database: 0
+    lettuce:
+      pool:
+        max-active: 8   # 连接池中的最大活跃连接数
+        max-idle: 8     # 连接池中的最大空闲连接数
+        min-idle: 0     # 连接池中的最小空闲连接数
+        max-wait: 100ms # 连接池最大阻塞等待时间
+  jackson:
+    default-property-inclusion: NON_NULL # JSON处理时忽略非空字段
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml #指定xml映射文件的位置
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl #配置Mybatis的日志输出
+    map-underscore-to-camel-case: true #开启下划线转驼峰命名自动映射
+
+logging:
+  level:
+    org.springframework.jdbc.support.JdbcTransactionManager: debug #日志配置
+
+aliyun:
+  auth-sms:
+    access-key-id: <your_aliyun_access_key_id>
+    access-key-secret: <your_aliyun_access_key_secret>
+    sign-name: <your_sms_sign_name>
+    template-code: <your_sms_template_code>
+  captcha:
+    app-id: <your_aliyun_captcha_app_id>
+    app-key: <your_aliyun_captcha_app_key>

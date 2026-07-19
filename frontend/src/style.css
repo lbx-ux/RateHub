@@ -1,0 +1,172 @@
+/* RateHub PC Web端全局设计系统样式 */
+
+:root {
+  /* 品牌色板 */
+  --rh-primary: #FF6633;
+  --rh-primary-hover: #E05526;
+  --rh-primary-light: #FFEFEA;
+  --rh-accent: #FF9900;
+  
+  /* 中性色板 */
+  --rh-bg: #F5F7FA;
+  --rh-card: #FFFFFF;
+  --rh-text-main: #1A1A1A;
+  --rh-text-sub: #606266;
+  --rh-text-light: #909399;
+  --rh-border: #E4E7ED;
+  
+  /* 阴影体系 */
+  --rh-shadow-subtle: 0 2px 12px 0 rgba(0, 0, 0, 0.03);
+  --rh-shadow-md: 0 8px 24px 0 rgba(0, 0, 0, 0.05);
+  --rh-shadow-hover: 0 12px 32px 0 rgba(255, 102, 51, 0.1);
+  
+  /* 圆角规范 */
+  --rh-radius-lg: 12px;
+  --rh-radius-md: 8px;
+  --rh-radius-sm: 4px;
+  
+  /* 动效 */
+  --rh-transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  --rh-spring-transition: all 0.4s cubic-bezier(0.32, 0.94, 0.6, 1);
+
+  /* 覆盖 Element Plus 组件库的主色调 CSS 变量 */
+  --el-color-primary: var(--rh-primary) !important;
+  --el-color-primary-light-3: #ff9370 !important;
+  --el-color-primary-light-5: #ffb199 !important;
+  --el-color-primary-light-7: #ffd0c2 !important;
+  --el-color-primary-light-9: #ffefe8 !important;
+  --el-color-primary-dark-2: var(--rh-primary-hover) !important;
+}
+
+/* 基础重置 */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  background-color: var(--rh-bg);
+  color: var(--rh-text-main);
+  line-height: 1.6;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: var(--rh-transition);
+}
+
+a:hover {
+  color: var(--rh-primary);
+}
+
+/* PC 端核心版心 */
+.rh-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* 页面根容器，支持全宽 PC 架构 */
+#app {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--rh-bg);
+}
+
+/* 主内容区（去除多余的移动端高度限制） */
+.rh-main-content {
+  flex: 1;
+  padding-top: 24px;
+  padding-bottom: 60px;
+}
+
+/* 页面大卡片通用样式 */
+.rh-card {
+  background: var(--rh-card);
+  border-radius: var(--rh-radius-lg);
+  padding: 24px;
+  box-shadow: var(--rh-shadow-subtle);
+  border: 1px solid rgba(228, 231, 237, 0.6);
+  transition: var(--rh-transition);
+}
+
+.rh-card:hover {
+  box-shadow: var(--rh-shadow-md);
+  transform: translateY(-2px);
+}
+
+/* PC 端现代毛玻璃头部导航 */
+.rh-glass-nav {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(228, 231, 237, 0.8);
+  box-shadow: 0 2px 10px 0 rgba(0, 0, 0, 0.02);
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* 按钮精细调节 */
+.el-button--primary:not(.is-plain) {
+  --el-button-bg-color: var(--rh-primary) !important;
+  --el-button-border-color: var(--rh-primary) !important;
+  --el-button-hover-bg-color: var(--rh-primary-hover) !important;
+  --el-button-hover-border-color: var(--rh-primary-hover) !important;
+  font-weight: 600;
+  border-radius: 20px !important;
+}
+
+/* 优雅的标题排版 */
+.rh-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.rh-section-title h2 {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--rh-text-main);
+  position: relative;
+  padding-left: 12px;
+}
+
+.rh-section-title h2::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 18px;
+  background: var(--rh-primary);
+  border-radius: 2px;
+}
+
+.text-pretty {
+  text-wrap: pretty;
+}
