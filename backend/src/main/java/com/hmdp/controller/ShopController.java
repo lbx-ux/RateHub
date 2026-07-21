@@ -7,17 +7,20 @@ import com.hmdp.entity.Shop;
 import com.hmdp.service.IShopService;
 import com.hmdp.constant.SystemConstants;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import java.util.List;
 
+import static com.hmdp.constant.RedisConstants.CACHE_SHOP_KEY;
+
 @RestController
 @RequestMapping("/shop")
 @RequiredArgsConstructor
 public class ShopController {
-    public final IShopService shopService;
-
+    private  final IShopService shopService;
+    private final StringRedisTemplate stringRedisTemplate;
     /**
      * 根据id查询商铺信息
      * @param id 商铺id

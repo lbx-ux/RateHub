@@ -10,9 +10,8 @@ import com.hmdp.service.IShopService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
-
-import javax.annotation.Resource;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static com.hmdp.constant.RedisConstants.CACHE_SHOP_KEY;
 
@@ -35,6 +34,7 @@ public class ShopServiceImpl implements IShopService {
     @Override
     public void updateById(Shop shop) {
         shopMapper.update(shop);
+        stringRedisTemplate.delete(CACHE_SHOP_KEY+shop.getId());
     }
 
     @Override
@@ -55,11 +55,15 @@ public class ShopServiceImpl implements IShopService {
         if(StrUtil.isNotBlank(shopJson)){
             return Result.success(JSONUtil.toBean(shopJson,Shop.class));
         }
-        Shop shop=shopMapper.getById(id);
-        if(shop==null){
+        if(shopJson!=null){
             return Result.error("店铺不存在");
         }
-        stringRedisTemplate.opsForValue().set(CACHE_SHOP_KEY+id,JSONUtil.toJsonStr(shop));
+        Shop shop=shopMapper.getById(id);
+        if(shop==null){
+            stringRedisTemplate.opsForValue().set(CACHE_SHOP_KEY+id,"",2L,TimeUnit.MINUTES);
+            return Result.error("店铺不存在");
+        }
+        stringRedisTemplate.opsForValue().set(CACHE_SHOP_KEY+id,JSONUtil.toJsonStr(shop),30L, TimeUnit.MINUTES);
         return Result.success(shop);
     }
 }
