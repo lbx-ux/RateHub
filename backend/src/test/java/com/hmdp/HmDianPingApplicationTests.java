@@ -6,6 +6,7 @@ import com.hmdp.mapper.ShopMapper;
 import com.hmdp.service.IShopService;
 import com.hmdp.service.impl.ShopServiceImpl;
 import com.hmdp.utils.CacheClient;
+import com.hmdp.utils.RedisIdWorker;
 import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,8 @@ class HmDianPingApplicationTests {
     private CacheClient cacheClient;
     @Autowired
     private ShopMapper shopMapper;
+    @Autowired
+    private RedisIdWorker redisIdWorker;
 
     @Test
     void testSaveShopToRedis() {
@@ -33,6 +36,14 @@ class HmDianPingApplicationTests {
                     10L,
                     TimeUnit.SECONDS
             );
+        }
+    }
+
+    @Test
+    void testIdWorker() {
+        for (int i = 0; i < 100; i++) {
+            long id = redisIdWorker.nextId("order");
+            System.out.println("id = " + id);
         }
     }
 

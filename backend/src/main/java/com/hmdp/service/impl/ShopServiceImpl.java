@@ -100,16 +100,16 @@ public class ShopServiceImpl implements IShopService {
     @Override
     public Result<Shop> queryShopById(Long id) {
         // 方案一：采用通用缓存穿透防护查询
-        //Shop shop = cacheClient.queryWithPassThrough(
-         //       CACHE_SHOP_KEY, id, Shop.class, shopMapper::getById, 30L, TimeUnit.MINUTES);
+        Shop shop = cacheClient.queryWithPassThrough(
+                CACHE_SHOP_KEY, id, Shop.class, shopMapper::getById, 30L, TimeUnit.MINUTES);
 
         // 方案二：采用通用互斥锁防击穿与防穿透查询
         // Shop shop = cacheClient.queryWithMutex(
         //         CACHE_SHOP_KEY, LOCK_SHOP_KEY, id, Shop.class, shopMapper::getById, 30L, TimeUnit.MINUTES);
 
          //方案三：采用通用逻辑过期防击穿查询（适用于热点Key提前缓存预热）
-         Shop shop = cacheClient.queryWithLogicalExpire(
-                CACHE_SHOP_KEY, LOCK_SHOP_KEY, id, Shop.class, shopMapper::getById, 20L, TimeUnit.SECONDS);
+         //Shop shop = cacheClient.queryWithLogicalExpire(
+         //   CACHE_SHOP_KEY, LOCK_SHOP_KEY, id, Shop.class, shopMapper::getById, 20L, TimeUnit.SECONDS);
 
         if (shop == null) {
             return Result.error("店铺不存在");
