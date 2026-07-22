@@ -15,7 +15,6 @@
         <h2 class="form-title">编辑个人资料</h2>
         <div class="form-divider"></div>
 
-        <!-- 头像上传 -->
         <div class="avatar-upload-box">
           <div class="avatar-container" @click="triggerAvatarUpload">
             <img :src="user.icon || '/imgs/icons/default-icon.png'" alt="Avatar" class="avatar-img" />
@@ -71,6 +70,11 @@
 
           <div class="form-divider"></div>
 
+          <!-- 账号安全 -->
+          <el-form-item label="账号安全" class="vip-item">
+            <el-button type="primary" link @click="pwdDialogVisible = true">设置/修改密码</el-button>
+          </el-form-item>
+
           <!-- PC 特权展示 -->
           <el-form-item label="我的等级" class="vip-item">
             <span class="vip-text">RateHub 普通用户 (Lv1) <a href="javascript:;" class="vip-link">升级为 VIP 享专属权益</a></span>
@@ -86,6 +90,24 @@
         </el-form>
       </div>
     </div>
+
+    <!-- 修改密码弹窗 -->
+    <el-dialog v-model="pwdDialogVisible" title="设置/修改密码" width="400px">
+      <el-form :model="pwdForm" label-width="80px">
+        <el-form-item label="原密码">
+          <el-input v-model="pwdForm.oldPassword" type="password" placeholder="未设置密码则留空" show-password />
+        </el-form-item>
+        <el-form-item label="新密码">
+          <el-input v-model="pwdForm.newPassword" type="password" placeholder="请输入新密码" show-password />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="pwdDialogVisible = false">取消</el-button>
+          <el-button type="primary" :loading="pwdLoading" @click="handleUpdatePassword">确定</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -95,8 +117,10 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Camera } from '@element-plus/icons-vue'
 import request from '../utils/request'
+import { useUserStore } from '../stores/user'
 
 const router = useRouter()
+const userStore = useUserStore()
 
 const user = ref({
   nickName: '',
@@ -110,6 +134,13 @@ const info = ref({
 })
 const saveLoading = ref(false)
 
+const pwdDialogVisible = ref(false)
+const pwdLoading = ref(false)
+const pwdForm = ref({
+  oldPassword: '',
+  newPassword: ''
+})
+
 onMounted(() => {
   checkLoginAndLoadData()
 })
@@ -121,13 +152,7 @@ const checkLoginAndLoadData = async () => {
     const res = await request.get('/user/me')
     if (res.code === 200 && res.data) {
       user.value = res.data
-      
-      const cachedInfo = sessionStorage.getItem('userInfo')
-      if (cachedInfo) {
-        info.value = JSON.parse(cachedInfo)
-      } else {
-        queryUserDetails(res.data.id)
-      }
+      queryUserDetails(res.data.id)
     }
   } catch (error) {
     console.error(error)
@@ -139,7 +164,7 @@ const queryUserDetails = async (userId) => {
     const res = await request.get(`/user/info/${userId}`)
     if (res.code === 200 && res.data) {
       info.value = res.data
-      sessionStorage.setItem('userInfo', JSON.stringify(res.data))
+      info.value.gender = res.data.gender === false ? '男' : res.data.gender === true ? '女' : '保密'
     }
   } catch (error) {
     console.error(error)
@@ -147,24 +172,67 @@ const queryUserDetails = async (userId) => {
 }
 
 const triggerAvatarUpload = () => {
-  ElMessage.info('个人头像上传接口联调中')
+  ElMessage.info('个人头像上传已禁用，使用默认头像')
 }
 
-const handleSave = () => {
+const handleSave = async () => {
   if (!user.value.nickName.trim()) {
     ElMessage.warning('昵称不能为空')
     return
   }
   
   saveLoading.value = true
-  setTimeout(() => {
+  try {
+    const payload = {
+      nickName: user.value.nickName,
+      icon: user.value.icon,
+      gender: info.value.gender,
+      birthday: info.value.birthday,
+      city: info.value.city,
+      introduce: info.value.introduce
+    }
+    const res = await request.put('/user/update', payload)
+    if (res.code === 200) {
+      ElMessage.success('个人资料保存成功')
+      userStore.setUserInfo(user.value)
+      setTimeout(() => {
+        router.replace('/profile')
+      }, 600)
+    } else {
+      ElMessage.error(res.message || '保存失败')
+    }
+  } catch (error) {
+    ElMessage.error('保存失败，请稍后重试')
+  } finally {
     saveLoading.value = false
-    sessionStorage.setItem('userInfo', JSON.stringify(info.value))
-    ElMessage.success('个人资料保存成功')
-    setTimeout(() => {
-      router.replace('/profile')
-    }, 600)
-  }, 800)
+  }
+}
+
+const handleUpdatePassword = async () => {
+  if (!pwdForm.value.newPassword) {
+    ElMessage.warning('新密码不能为空')
+    return
+  }
+  pwdLoading.value = true
+  try {
+    const res = await request.put('/user/password', pwdForm.value)
+    if (res.code === 200) {
+      ElMessage.success('密码修改成功，请重新登录')
+      pwdDialogVisible.value = false
+      setTimeout(() => {
+        request.post('/user/logout').finally(() => {
+          sessionStorage.removeItem('token')
+          router.replace('/login')
+        })
+      }, 1000)
+    } else {
+      ElMessage.error(res.message || '密码修改失败')
+    }
+  } catch (error) {
+    ElMessage.error('请求失败，请重试')
+  } finally {
+    pwdLoading.value = false
+  }
 }
 </script>
 

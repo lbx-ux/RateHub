@@ -14,4 +14,8 @@ public interface IUserService {
     Result<String> sendCode(CaptchaCodeDTO captchaCodeDTO, HttpSession session);
 
     Result<String> login(LoginFormDTO loginForm, HttpSession session);
+    
+    Result updateProfile(com.hmdp.dto.UserUpdateDTO userUpdateDTO, String token);
+    
+    Result updatePassword(String oldPassword, String newPassword);
 }

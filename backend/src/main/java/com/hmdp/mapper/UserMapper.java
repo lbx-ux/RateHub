@@ -22,4 +22,10 @@ public interface UserMapper {
 
     @Insert("insert into tb_user(phone,nick_name)values (#{phone},#{nickName})")
     void save(User user);
+
+    @org.apache.ibatis.annotations.Update("UPDATE tb_user SET nick_name = #{nickName}, icon = #{icon} WHERE id = #{id}")
+    void updateProfile(User user);
+
+    @org.apache.ibatis.annotations.Update("UPDATE tb_user SET password = #{password} WHERE id = #{id}")
+    void updatePassword(User user);
 }

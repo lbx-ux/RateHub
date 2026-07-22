@@ -60,6 +60,21 @@ public class UserController {
         }
         return Result.success();
     }
+    @PutMapping("/update")
+    public Result updateProfile(@RequestBody com.hmdp.dto.UserUpdateDTO userUpdateDTO, HttpServletRequest request) {
+        String token = request.getHeader("authorization");
+        return userService.updateProfile(userUpdateDTO, token);
+    }
+
+    @PutMapping("/password")
+    public Result updatePassword(@RequestBody java.util.Map<String, String> params) {
+        String oldPassword = params.get("oldPassword");
+        String newPassword = params.get("newPassword");
+        if (StrUtil.isBlank(newPassword)) {
+            return Result.error("新密码不能为空");
+        }
+        return userService.updatePassword(oldPassword, newPassword);
+    }
 
     @GetMapping("/me")
     public Result<UserDTO> me(){
