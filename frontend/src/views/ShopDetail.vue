@@ -69,7 +69,7 @@
             >
               <!-- 券左侧：大额折扣信息 -->
               <div class="v-left-discount">
-                <span class="discount-value">{{ (v.payValue / 100).toFixed(0) }}</span>
+                <span class="discount-value">{{ v.payValue / 100 }}</span>
                 <span class="discount-unit">元</span>
               </div>
 
@@ -81,7 +81,7 @@
                 <h4 class="v-title">{{ v.title }}</h4>
                 <p class="v-subtitle">{{ v.subTitle }}</p>
                 <div class="v-price-row">
-                  <span class="v-price-original">原价 ￥{{ (v.actualValue / 100).toFixed(0) }}</span>
+                  <span class="v-price-original">原价 ￥{{ v.actualValue / 100 }}</span>
                   <span class="v-discount-ratio">{{ ((v.payValue / v.actualValue) * 10).toFixed(1) }} 折优惠</span>
                 </div>
               </div>
@@ -501,7 +501,7 @@ const handleShare = () => {
   background-color: #FFF5F2;
   color: var(--rh-primary);
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: center;
   height: 100%;
   border-right: 1px dashed var(--rh-border);
@@ -509,14 +509,17 @@ const handleShare = () => {
 }
 
 .discount-value {
-  font-size: 40px;
+  font-size: 34px;
   font-weight: 900;
+  line-height: 1;
 }
 
 .discount-unit {
   font-size: 14px;
   font-weight: 700;
   margin-left: 2px;
+  align-self: flex-end;
+  margin-bottom: 4px;
 }
 
 /* 核心信息 */

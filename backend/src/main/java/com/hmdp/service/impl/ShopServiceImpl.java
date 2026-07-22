@@ -2,6 +2,7 @@ package com.hmdp.service.impl;
 
 import com.github.pagehelper.PageHelper;
 import com.hmdp.dto.Result;
+import com.hmdp.dto.ShopVO;
 import com.hmdp.entity.Shop;
 import com.hmdp.mapper.ShopMapper;
 import com.hmdp.service.IShopService;
@@ -68,7 +69,7 @@ public class ShopServiceImpl implements IShopService {
      * @return 店铺列表
      */
     @Override
-    public List<Shop> queryShopByType(Integer typeId, int current, int pageSize) {
+    public List<ShopVO> queryShopByType(Integer typeId, int current, int pageSize) {
         // 1. 设置PageHelper分页参数
         PageHelper.startPage(current, pageSize);
         // 2. 根据类别查询店铺数据
@@ -84,7 +85,7 @@ public class ShopServiceImpl implements IShopService {
      * @return 店铺列表
      */
     @Override
-    public List<Shop> queryShopByName(String name, int current, int pageSize) {
+    public List<ShopVO> queryShopByName(String name, int current, int pageSize) {
         // 1. 设置PageHelper分页参数
         PageHelper.startPage(current, pageSize);
         // 2. 根据店铺名进行模糊查询

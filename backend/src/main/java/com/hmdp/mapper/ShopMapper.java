@@ -1,5 +1,6 @@
 package com.hmdp.mapper;
 
+import com.hmdp.dto.ShopVO;
 import com.hmdp.entity.Shop;
 import org.apache.ibatis.annotations.*;
 
@@ -28,16 +29,20 @@ public interface ShopMapper {
             "WHERE id = #{id}")
     void update(Shop shop);
 
-    @Select("SELECT * FROM tb_shop WHERE type_id = #{typeId}")
-    List<Shop> queryShopByType(@Param("typeId") Integer typeId);
+    @Select("SELECT s.*, " +
+            "  (EXISTS (SELECT 1 FROM tb_voucher v WHERE v.shop_id = s.id)) AS has_voucher " +
+            "FROM tb_shop s WHERE s.type_id = #{typeId}")
+    List<ShopVO> queryShopByType(@Param("typeId") Integer typeId);
 
     @Select("<script>" +
-            "SELECT * FROM tb_shop " +
+            "SELECT s.*, " +
+            "  (EXISTS (SELECT 1 FROM tb_voucher v WHERE v.shop_id = s.id)) AS has_voucher " +
+            "FROM tb_shop s " +
             "<where>" +
             "  <if test='name != null and name != \"\"'>" +
-            "    name LIKE CONCAT('%', #{name}, '%')" +
+            "    s.name LIKE CONCAT('%', #{name}, '%')" +
             "  </if>" +
             "</where>" +
             "</script>")
-    List<Shop> queryShopByName(@Param("name") String name);
+    List<ShopVO> queryShopByName(@Param("name") String name);
 }

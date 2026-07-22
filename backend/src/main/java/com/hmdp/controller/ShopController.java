@@ -3,6 +3,7 @@ package com.hmdp.controller;
 
 import cn.hutool.core.util.StrUtil;
 import com.hmdp.dto.Result;
+import com.hmdp.dto.ShopVO;
 import com.hmdp.entity.Shop;
 import com.hmdp.service.IShopService;
 import com.hmdp.constant.SystemConstants;
@@ -68,7 +69,7 @@ public class ShopController {
             @RequestParam(value = "current", defaultValue = "1") Integer current
     ) {
         // 根据类型分页查询
-        List<Shop> list = shopService.queryShopByType(typeId, current, SystemConstants.DEFAULT_PAGE_SIZE);
+        List<ShopVO> list = shopService.queryShopByType(typeId, current, SystemConstants.DEFAULT_PAGE_SIZE);
         // 返回数据
         return Result.success(list);
     }
@@ -85,7 +86,7 @@ public class ShopController {
             @RequestParam(value = "current", defaultValue = "1") Integer current
     ) {
         // 根据关键字分页查询
-        List<Shop> list = shopService.queryShopByName(name, current, SystemConstants.MAX_PAGE_SIZE);
+        List<ShopVO> list = shopService.queryShopByName(name, current, SystemConstants.MAX_PAGE_SIZE);
         // 返回数据
         return Result.success(list);
     }

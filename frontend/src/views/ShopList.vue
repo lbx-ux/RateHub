@@ -112,10 +112,15 @@
                 <span class="address" :title="s.address">{{ s.address }}</span>
               </div>
 
-              <!-- PC版附赠促销标签 -->
-              <div class="promotion-row">
+              <!-- PC版附赠促销标签，仅在有优惠券时展示 -->
+              <div class="promotion-row" v-if="s.hasVoucher">
                 <span class="promo-badge voucher">券</span>
                 <span class="promo-text">店内有超值代金券及限量秒杀正在抢购中</span>
+              </div>
+              <!-- 无优惠券占位行，保持卡片高度一致 -->
+              <div class="no-promo-row" v-else>
+                <span class="no-promo-icon">○</span>
+                <span class="no-promo-text">暂无促销活动</span>
               </div>
             </div>
 
@@ -561,6 +566,30 @@ const formatDistance = (d) => {
 .promo-text {
   font-size: 12px;
   color: var(--rh-text-sub);
+}
+
+/* 无优惠券时的占位行 */
+.no-promo-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background-color: #F5F5F7;
+  width: fit-content;
+}
+
+.no-promo-icon {
+  font-size: 10px;
+  color: #C0C4CC;
+  line-height: 1;
+}
+
+.no-promo-text {
+  font-size: 11px;
+  color: #C0C4CC;
+  letter-spacing: 0.3px;
 }
 
 /* PC卡片最右侧区域 */
