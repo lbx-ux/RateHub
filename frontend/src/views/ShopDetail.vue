@@ -1,12 +1,11 @@
 <template>
   <div class="shop-detail-pc-page rh-container" v-loading="pageLoading">
-    <!-- 面包屑导航 -->
-    <div class="breadcrumb-container">
-      <el-breadcrumb separator="/">
-        <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
-        <el-breadcrumb-item :to="{ path: '/shop-list' }">商户探索</el-breadcrumb-item>
-        <el-breadcrumb-item>{{ shop.name || '商户详情' }}</el-breadcrumb-item>
-      </el-breadcrumb>
+    <!-- 返回按钮 -->
+    <div class="back-btn-container">
+      <el-button class="back-btn" text @click="router.push('/shop-list')">
+        <el-icon><ArrowLeft /></el-icon>
+        <span>返回商户探索</span>
+      </el-button>
     </div>
 
     <!-- 主体双栏布局 -->
@@ -23,7 +22,7 @@
           </div>
 
           <div class="rate-line">
-            <el-rate v-model="shopRating" disabled colors="#FF6633" size="16px" />
+            <el-rate v-model="shopRating" disabled color="#FF6633" size="16px" />
             <span class="score-text">{{ (shop.score / 10).toFixed(1) }}分</span>
             <span class="comments-count">{{ shop.comments || 0 }}条网友点评</span>
             <span class="price-val">人均 ￥{{ shop.avgPrice || 0 }}</span>
@@ -53,8 +52,8 @@
           </div>
         </section>
 
-        <!-- 2. 代金券和限时秒杀特惠卡片 (Vouchers) -->
-        <section class="vouchers-section rh-card">
+        <!-- 2. 代金券和限时秒杀特惠卡片 (Vouchers)，无券时整体隐藏 -->
+        <section class="vouchers-section rh-card" v-if="vouchers.length > 0">
           <div class="section-header">
             <el-icon class="section-icon"><Ticket /></el-icon>
             <h3>优惠促销与秒杀特惠</h3>
@@ -134,7 +133,7 @@
                 <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100" alt="Avatar" class="cmt-avatar" />
                 <div class="cmt-author-meta">
                   <h4>叶小乙</h4>
-                  <el-rate v-model="cmtRate" disabled colors="#FF6633" size="12px" />
+                  <el-rate v-model="cmtRate" disabled color="#FF6633" size="12px" />
                 </div>
                 <span class="cmt-date">2026年07月03日 12:30</span>
               </div>
@@ -192,7 +191,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Share, Ticket, ChatLineRound, Clock, LocationInformation, LocationFilled } from '@element-plus/icons-vue'
+import { Share, Ticket, ChatLineRound, Clock, LocationInformation, LocationFilled, ArrowLeft } from '@element-plus/icons-vue'
 import request from '../utils/request'
 
 const route = useRoute()
@@ -330,8 +329,22 @@ const handleShare = () => {
   gap: 16px;
 }
 
-.breadcrumb-container {
-  padding: 8px 0;
+.back-btn-container {
+  padding: 4px 0;
+}
+
+.back-btn {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--rh-text-sub);
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+  color: var(--rh-primary);
+  background-color: var(--rh-primary-light);
 }
 
 /* PC 主体双栏 */

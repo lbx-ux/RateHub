@@ -95,10 +95,10 @@
 
               <div class="rating-line">
                 <el-rate 
-                  v-model="s.rating" 
+                  :model-value="s.score ? s.score / 10 : 0" 
                   disabled 
                   allow-half 
-                  colors="#FF6633" 
+                  color="#FF6633" 
                   size="14px"
                 />
                 <span class="score-text">{{ (s.score / 10).toFixed(1) }}分</span>

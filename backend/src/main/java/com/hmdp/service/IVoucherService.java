@@ -3,6 +3,8 @@ package com.hmdp.service;
 import com.hmdp.dto.Result;
 import com.hmdp.entity.Voucher;
 
+import java.util.List;
+
 /**
  * <p>
  *  服务类
@@ -13,7 +15,7 @@ import com.hmdp.entity.Voucher;
  */
 public interface IVoucherService {
 
-    Result queryVoucherOfShop(Long shopId);
+    Result<List<Voucher>> queryVoucherOfShop(Long shopId);
 
     void addSeckillVoucher(Voucher voucher);
 

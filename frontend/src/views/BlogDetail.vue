@@ -59,7 +59,7 @@
             <span class="rec-tag">日记关联商户</span>
             <h3 class="shop-name">{{ shop.name }}</h3>
             <div class="rate-row">
-              <el-rate v-model="shopRating" disabled size="12px" colors="#FF6633" />
+              <el-rate v-model="shopRating" disabled size="12px" color="#FF6633" />
               <span class="score-text">{{ (shop.score / 10).toFixed(1) }}分</span>
               <span class="price-avg">人均 ￥{{ shop.avgPrice }}/人</span>
             </div>
