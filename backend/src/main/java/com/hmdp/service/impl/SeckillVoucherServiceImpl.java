@@ -30,6 +30,7 @@ public class SeckillVoucherServiceImpl implements ISeckillVoucherService {
     }
 
     @Override
+    @Transactional
     public Result seckillVoucher(Long voucherId) {
         // 1. 查询秒杀券
         SeckillVoucher seckillVoucher = seckillVoucherMapper.getById(voucherId);
@@ -51,17 +52,21 @@ public class SeckillVoucherServiceImpl implements ISeckillVoucherService {
             return Result.error("库存不足！");
         }
 
-        // 4. 扣减库存
-        int updateRows = seckillVoucherMapper.updateById(voucherId);
-        if (updateRows < 1) {
-            return Result.error("库存不足！");
-        }
-        log.info("还有{}库存", seckillVoucher.getStock());
-
         // 5. 获取登录用户
         UserDTO user = UserHolder.getUser();
         if (user == null) {
             return Result.error("请先登录！");
+        }
+
+        int count = voucherOrderMapper.queryCountByVoucherId(voucherId, user.getId());
+        if(count>0){
+            return Result.error("该用户已经购买过该优惠券！");
+        }
+
+        // 4. 扣减库存
+        int updateRows = seckillVoucherMapper.updateById(voucherId);
+        if (updateRows < 1) {
+            return Result.error("库存不足！");
         }
 
         // 6. 创建订单

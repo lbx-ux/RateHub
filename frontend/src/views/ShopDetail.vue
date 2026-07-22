@@ -265,7 +265,9 @@ const buyNormalVoucher = async (v) => {
       ElMessageBox.alert(`恭喜您，优惠券购买成功！创建订单 ID: ${res.data}`, '购买成功', {
         confirmButtonText: '查看我的订单',
         type: 'success'
-      })
+      }).then(() => {
+        router.push('/profile')
+      }).catch(() => {})
       queryVouchers()
     }
   } catch (error) {
@@ -331,7 +333,9 @@ const handleSeckill = async (v) => {
       ElMessageBox.alert(`恭喜您，优惠券秒杀成功！创建订单 ID: ${res.data}`, '秒杀成功', {
         confirmButtonText: '查看我的订单',
         type: 'success'
-      })
+      }).then(() => {
+        router.push('/profile')
+      }).catch(() => {})
       queryVouchers()
     }
   } catch (error) {

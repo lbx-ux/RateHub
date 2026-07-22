@@ -53,4 +53,14 @@ public class VoucherOrderServiceImpl implements IVoucherOrderService {
         // 6. 返回订单 ID
         return Result.success(orderId);
     }
+
+    @Override
+    public Result queryMyOrders() {
+        UserDTO user = UserHolder.getUser();
+        if (user == null) {
+            return Result.error("尚未登录！");
+        }
+        java.util.List<com.hmdp.dto.VoucherOrderVO> orders = voucherOrderMapper.queryMyOrders(user.getId());
+        return Result.success(orders);
+    }
 }

@@ -31,4 +31,12 @@ public class VoucherOrderController {
     public Result buyNormalVoucher(@PathVariable("id") Long voucherId) {
         return voucherOrderService.buyNormalVoucher(voucherId);
     }
+
+    /**
+     * 查询我的订单
+     */
+    @org.springframework.web.bind.annotation.GetMapping("/my")
+    public Result queryMyOrders() {
+        return voucherOrderService.queryMyOrders();
+    }
 }

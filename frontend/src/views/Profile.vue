@@ -73,6 +73,36 @@
             </div>
           </el-tab-pane>
 
+          <!-- 我的订单 Tab -->
+          <el-tab-pane label="我的订单" name="orders">
+            <div class="tab-content-panel" v-loading="ordersLoading">
+              <div class="my-orders-list" v-if="orders.length > 0">
+                <el-card v-for="order in orders" :key="order.id" class="order-card" shadow="hover">
+                  <div class="order-header">
+                    <span class="order-id">订单号：{{ order.id }}</span>
+                    <el-tag :type="order.type === 1 ? 'danger' : 'success'" size="small">
+                      {{ order.type === 1 ? '秒杀券' : '普通券' }}
+                    </el-tag>
+                  </div>
+                  <div class="order-body">
+                    <div class="order-info-left">
+                      <h3 class="order-title">{{ order.title || '未知优惠券' }}</h3>
+                      <div class="order-price">
+                        <span class="pay-value">实付：￥{{ ((order.payValue || 0) / 100).toFixed(2) }}</span>
+                        <span class="actual-value" v-if="order.actualValue"> (可抵扣：￥{{ (order.actualValue / 100).toFixed(2) }})</span>
+                      </div>
+                      <div class="order-time">下单时间：{{ formatTime(order.createTime) }}</div>
+                    </div>
+                    <div class="order-action-right">
+                      <el-button type="primary" plain size="small" @click="toShop(order.shopId)">去使用</el-button>
+                    </div>
+                  </div>
+                </el-card>
+              </div>
+              <el-empty v-else-if="!ordersLoading" description="暂无订单记录，去逛逛优惠券吧~" />
+            </div>
+          </el-tab-pane>
+
           <!-- 关注动态 Tab -->
           <el-tab-pane label="达人动态 (关注流)" name="followBlogs">
             <div class="tab-content-panel">
@@ -172,6 +202,9 @@ const details = ref({})
 const blogs = ref([])
 const activeTab = ref('blogs')
 const pageLoading = ref(false)
+
+const orders = ref([])
+const ordersLoading = ref(false)
 
 // 关注动态流分页
 const followBlogs = ref([])
@@ -277,7 +310,32 @@ const onTabChange = (name) => {
     queryBlogsOfFollow(true)
   } else if (name === 'blogs') {
     queryMyBlogs()
+  } else if (name === 'orders') {
+    queryMyOrders()
   }
+}
+
+const queryMyOrders = async () => {
+  try {
+    ordersLoading.value = true
+    const res = await request.get('/voucher-order/my')
+    if (res.code === 200 && res.data) {
+      orders.value = res.data
+    }
+  } catch (error) {
+    console.error('Failed to fetch orders:', error)
+  } finally {
+    ordersLoading.value = false
+  }
+}
+
+const formatTime = (timeStr) => {
+  if (!timeStr) return ''
+  if (Array.isArray(timeStr)) {
+    const [y, m, d, h = 0, min = 0, s = 0] = timeStr
+    return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')} ${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`
+  }
+  return timeStr.replace('T', ' ').substring(0, 16)
 }
 
 const toggleLike = async (blog) => {
@@ -313,6 +371,13 @@ const handleLogout = () => {
 
 const toEdit = () => router.push('/profile-edit')
 const toBlogDetail = (id) => router.push(`/blog-detail?id=${id}`)
+const toShop = (shopId) => {
+  if (shopId) {
+    router.push(`/shop-detail?id=${shopId}`)
+  } else {
+    ElMessage.warning('该优惠券尚未绑定商户')
+  }
+}
 </script>
 
 <style scoped>
@@ -631,5 +696,73 @@ const toBlogDetail = (id) => router.push(`/blog-detail?id=${id}`)
 .load-more-feed-btn {
   border-radius: 20px !important;
   font-weight: 700;
+}
+
+/* 订单列表卡片样式 */
+.my-orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.order-card {
+  border-radius: var(--rh-radius-md);
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--rh-border);
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+}
+
+.order-id {
+  font-size: 12px;
+  color: var(--rh-text-light);
+}
+
+.order-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.order-info-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.order-action-right {
+  flex-shrink: 0;
+  margin-left: 16px;
+}
+
+.order-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--rh-text-main);
+  margin: 0;
+}
+
+.order-price {
+  font-size: 14px;
+}
+
+.pay-value {
+  color: #ff4d4f;
+  font-weight: bold;
+}
+
+.actual-value {
+  color: var(--rh-text-sub);
+  font-size: 12px;
+}
+
+.order-time {
+  font-size: 12px;
+  color: var(--rh-text-light);
 }
 </style>
