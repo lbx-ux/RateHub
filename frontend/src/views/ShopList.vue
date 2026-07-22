@@ -206,21 +206,7 @@ const params = reactive({
 })
 
 onMounted(() => {
-  // 获取 GPS 定位
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        params.x = pos.coords.longitude
-        params.y = pos.coords.latitude
-        queryShops()
-      },
-      () => {
-        queryShops()
-      }
-    )
-  } else {
-    queryShops()
-  }
+  queryShops()
   queryTypes()
   
   // 绑定滚动加载 (PC)

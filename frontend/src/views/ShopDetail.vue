@@ -251,17 +251,50 @@ const queryVouchers = async () => {
   }
 }
 
-const buyNormalVoucher = (v) => {
-  ElMessage.info(`普通代金券支付接口联调中，券ID: ${v.id}`)
+const buyNormalVoucher = async (v) => {
+  const token = sessionStorage.getItem('token')
+  if (!token) {
+    ElMessage.warning('请先登录')
+    router.push(`/login?redirect=${encodeURIComponent(route.fullPath)}`)
+    return
+  }
+
+  try {
+    const res = await request.post(`/voucher-order/normal/${v.id}`)
+    if (res.code === 200) {
+      ElMessageBox.alert(`恭喜您，优惠券购买成功！创建订单 ID: ${res.data}`, '购买成功', {
+        confirmButtonText: '查看我的订单',
+        type: 'success'
+      })
+      queryVouchers()
+    }
+  } catch (error) {
+    ElMessage.error(error || '购买失败，系统繁忙')
+  }
+}
+
+// 日期时间安全解析兼容
+const parseDate = (timeStr) => {
+  if (!timeStr) return null
+  if (Array.isArray(timeStr)) {
+    // 兼容 LocalDateTime 数组格式 [yyyy, MM, dd, HH, mm, ss]
+    const [y, m, d, h = 0, min = 0, s = 0] = timeStr
+    return new Date(y, m - 1, d, h, min, s)
+  }
+  const t = typeof timeStr === 'string' ? timeStr.replace(/-/g, '/').replace('T', ' ') : timeStr
+  const date = new Date(t)
+  return isNaN(date.getTime()) ? null : date
 }
 
 // 秒杀抢购
 const isNotBegin = (v) => {
-  return new Date(v.beginTime).getTime() > Date.now()
+  const d = parseDate(v.beginTime)
+  return d ? d.getTime() > Date.now() : false
 }
 
 const isEnd = (v) => {
-  return new Date(v.endTime).getTime() < Date.now()
+  const d = parseDate(v.endTime)
+  return d ? d.getTime() < Date.now() : false
 }
 
 const getSeckillBtnText = (v) => {
@@ -307,7 +340,8 @@ const handleSeckill = async (v) => {
 }
 
 const formatTimeRange = (v) => {
-  const b = new Date(v.beginTime)
+  const b = parseDate(v.beginTime)
+  if (!b) return ''
   const pad = (num) => String(num).padStart(2, '0')
   return `${b.getMonth() + 1}月${b.getDate()}日 ${pad(b.getHours())}:${pad(b.getMinutes())} 开始`
 }
