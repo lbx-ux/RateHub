@@ -4,6 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.RandomUtil;
+import cn.hutool.core.util.StrUtil;
 import com.hmdp.constant.RedisConstants;
 import com.hmdp.dto.CaptchaCodeDTO;
 import com.hmdp.dto.LoginFormDTO;
@@ -75,7 +76,7 @@ public class UserServiceImpl implements IUserService {
 
         User user = userMapper.getByPhone(phone);
 
-        if (cn.hutool.core.util.StrUtil.isNotBlank(loginForm.getPassword())) {
+        if (StrUtil.isNotBlank(loginForm.getPassword())) {
             // 密码登录
             if (user == null) {
                 throw new BusinessException("该手机号尚未注册，请先使用验证码登录");
@@ -99,25 +100,37 @@ public class UserServiceImpl implements IUserService {
             }
         }
 
-        // 1. 随机生成 token，作为登录令牌
+        // 1. 生成新 token 之前，先检查该用户是否已有登录的 token，实现“踢人下线”
+        String userTokenKey = "login:user:" + user.getId();
+        String oldToken = stringRedisTemplate.opsForValue().get(userTokenKey);
+        if (StrUtil.isNotBlank(oldToken)) {
+            // 如果存在旧 token，则将其删除
+            stringRedisTemplate.delete(RedisConstants.LOGIN_USER_KEY + oldToken);
+        }
+
+        // 2. 随机生成 token，作为登录令牌
         String token = UUID.randomUUID().toString(true);
         log.info("token:{}", token);
 
-        // 2. 将 User 转换为 UserDTO
+        // 3. 将 User 转换为 UserDTO
         UserDTO userDTO = BeanUtil.copyProperties(user, UserDTO.class);
 
-        // 3. 将 UserDTO 对象转为 Map，并确保所有字段的值均为 String 类型，防止 Redis Hash 存入报错
+        // 4. 将 UserDTO 对象转为 Map
         Map<String, Object> userMap = BeanUtil.beanToMap(userDTO, new HashMap<>(),
                 CopyOptions.create()
                         .setIgnoreNullValue(true)
                         .setFieldValueEditor((fieldName, fieldValue) -> fieldValue == null ? "" : fieldValue.toString()));
-        // 4. 以 Hash 结构存储用户数据到 Redis
+        
+        // 5. 以 Hash 结构存储用户数据到 Redis
         String tokenKey = RedisConstants.LOGIN_USER_KEY + token;
         stringRedisTemplate.opsForHash().putAll(tokenKey, userMap);
-        // 5. 设置 token 的有效期（30分钟）
+        // 设置 token 的有效期（30分钟）
         stringRedisTemplate.expire(tokenKey, RedisConstants.LOGIN_USER_TTL, TimeUnit.SECONDS);
 
-        // 6. 返回 token 给前端
+        // 6. 记录 当前用户ID -> 最新Token 的映射，并保持同样的有效期
+        stringRedisTemplate.opsForValue().set(userTokenKey, token, RedisConstants.LOGIN_USER_TTL, TimeUnit.SECONDS);
+
+        // 7. 返回 token 给前端
         return Result.success(token);
     }
 
