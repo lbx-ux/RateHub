@@ -234,8 +234,7 @@ const onFileSelected = async () => {
       }
     })
     if (res.code === 200 && res.data) {
-      const completePath = '/imgs' + res.data
-      fileList.value.push(completePath)
+      fileList.value.push(res.data)
       ElMessage.success('图片上传成功')
     }
   } catch (error) {
@@ -247,10 +246,9 @@ const onFileSelected = async () => {
 
 const deletePic = async (index) => {
   const imgUrl = fileList.value[index]
-  const nameParam = imgUrl.startsWith('/imgs') ? imgUrl.replace('/imgs', '') : imgUrl
 
   try {
-    const res = await request.get(`/upload/blog/delete?name=${encodeURIComponent(nameParam)}`)
+    const res = await request.get(`/upload/blog/delete?name=${encodeURIComponent(imgUrl)}`)
     if (res.code === 200) {
       fileList.value.splice(index, 1)
       ElMessage.success('删除成功')

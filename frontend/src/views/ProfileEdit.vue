@@ -16,6 +16,7 @@
         <div class="form-divider"></div>
 
         <div class="avatar-upload-box">
+          <input type="file" accept="image/*" ref="avatarInput" style="display: none" @change="onAvatarSelected" />
           <div class="avatar-container" @click="triggerAvatarUpload">
             <img :src="user.icon || '/imgs/icons/default-icon.png'" alt="Avatar" class="avatar-img" />
             <div class="camera-mask">
@@ -171,8 +172,36 @@ const queryUserDetails = async (userId) => {
   }
 }
 
+const avatarInput = ref(null)
+
 const triggerAvatarUpload = () => {
-  ElMessage.info('个人头像上传已禁用，使用默认头像')
+  if (avatarInput.value) {
+    avatarInput.value.click()
+  }
+}
+
+const onAvatarSelected = async () => {
+  const file = avatarInput.value.files[0]
+  if (!file) return
+
+  const formData = new FormData()
+  formData.append('file', file)
+
+  try {
+    const res = await request.post('/upload/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    if (res.code === 200 && res.data) {
+      user.value.icon = res.data
+      ElMessage.success('头像上传成功，请记得保存更改')
+    } else {
+      ElMessage.error(res.message || '头像上传失败')
+    }
+  } catch (error) {
+    ElMessage.error('图片上传失败，请检查网络')
+  } finally {
+    if (avatarInput.value) avatarInput.value.value = ''
+  }
 }
 
 const handleSave = async () => {
