@@ -17,19 +17,19 @@ public class UploadController {
     private final MinioService minioService;
 
     @PostMapping("blog")
-    public Result uploadImage(@RequestParam("file") MultipartFile image) {
+    public Result<String> uploadImage(@RequestParam("file") MultipartFile image) {
         String url = minioService.uploadFile(image);
         return Result.success(url);
     }
 
     @PostMapping("avatar")
-    public Result uploadAvatar(@RequestParam("file") MultipartFile image) {
+    public Result<String> uploadAvatar(@RequestParam("file") MultipartFile image) {
         String url = minioService.uploadFile(image);
         return Result.success(url);
     }
 
     @GetMapping("/blog/delete")
-    public Result deleteBlogImg(@RequestParam("name") String filename) {
+    public Result<Void> deleteBlogImg(@RequestParam("name") String filename) {
         // filename 可能是完整 URL，提取对象名
         String objectName = filename;
         if (StrUtil.isNotBlank(filename) && filename.contains("/")) {
