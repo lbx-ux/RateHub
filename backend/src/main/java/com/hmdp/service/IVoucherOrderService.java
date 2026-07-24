@@ -7,4 +7,5 @@ public interface IVoucherOrderService {
     Result buyNormalVoucher(Long voucherId);
 
     Result queryMyOrders();
+
 }

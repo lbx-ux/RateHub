@@ -7,10 +7,12 @@ import com.hmdp.entity.VoucherOrder;
 import com.hmdp.mapper.SeckillVoucherMapper;
 import com.hmdp.mapper.VoucherOrderMapper;
 import com.hmdp.service.ISeckillVoucherService;
+import com.hmdp.service.IVoucherOrderService;
 import com.hmdp.utils.RedisIdWorker;
 import com.hmdp.utils.UserHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.aop.framework.AopContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,8 +32,7 @@ public class SeckillVoucherServiceImpl implements ISeckillVoucherService {
     }
 
     @Override
-    @Transactional
-    public Result seckillVoucher(Long voucherId) {
+    public Result<?> seckillVoucher(Long voucherId) {
         // 1. 查询秒杀券
         SeckillVoucher seckillVoucher = seckillVoucherMapper.getById(voucherId);
         if (seckillVoucher == null) {
@@ -52,33 +53,46 @@ public class SeckillVoucherServiceImpl implements ISeckillVoucherService {
             return Result.error("库存不足！");
         }
 
+        UserDTO user = UserHolder.getUser();
+
+        synchronized(user.getId().toString().intern()){
+            ISeckillVoucherService proxy = (ISeckillVoucherService) AopContext.currentProxy();
+            return proxy.createVoucherOrder(voucherId);
+        }
+
+
+
+
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public Result<?> createVoucherOrder(Long voucherId){
         // 5. 获取登录用户
         UserDTO user = UserHolder.getUser();
         if (user == null) {
             return Result.error("请先登录！");
         }
+            int count = voucherOrderMapper.queryCountByVoucherId(voucherId, user.getId());
+            if(count>0){
+                return Result.error("该用户已经购买过该优惠券！");
+            }
 
-        int count = voucherOrderMapper.queryCountByVoucherId(voucherId, user.getId());
-        if(count>0){
-            return Result.error("该用户已经购买过该优惠券！");
-        }
+            // 4. 扣减库存
+            int updateRows = seckillVoucherMapper.updateById(voucherId);
+            if (updateRows < 1) {
+                return Result.error("库存不足！");
+            }
 
-        // 4. 扣减库存
-        int updateRows = seckillVoucherMapper.updateById(voucherId);
-        if (updateRows < 1) {
-            return Result.error("库存不足！");
-        }
+            // 6. 创建订单
+            VoucherOrder voucherOrder = new VoucherOrder();
+            long orderId = redisIdWorker.nextId("order");
+            voucherOrder.setId(orderId);
+            voucherOrder.setUserId(user.getId());
+            voucherOrder.setVoucherId(voucherId);
 
-        // 6. 创建订单
-        VoucherOrder voucherOrder = new VoucherOrder();
-        long orderId = redisIdWorker.nextId("order");
-        voucherOrder.setId(orderId);
-        voucherOrder.setUserId(user.getId());
-        voucherOrder.setVoucherId(voucherId);
+            voucherOrderMapper.save(voucherOrder);
 
-        voucherOrderMapper.save(voucherOrder);
-
-        // 7. 返回订单 ID
-        return Result.success(orderId);
+            // 7. 返回订单 ID
+            return Result.success(orderId);
     }
 }

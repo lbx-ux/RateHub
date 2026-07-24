@@ -7,5 +7,7 @@ public interface ISeckillVoucherService {
 
     void save(SeckillVoucher seckillVoucher);
 
-    Result seckillVoucher(Long voucherId);
+    Result<?> seckillVoucher(Long voucherId);
+
+    Result<?> createVoucherOrder(Long voucherId);
 }
