@@ -18,35 +18,4 @@ import java.util.concurrent.TimeUnit;
 @SpringBootTest
 class HmDianPingApplicationTests {
 
-    @Autowired
-    private CacheClient cacheClient;
-    @Autowired
-    private ShopMapper shopMapper;
-    @Autowired
-    private RedisIdWorker redisIdWorker;
-
-    @Test
-    void testSaveShopToRedis() {
-        // 预热 ID 为 1 的商铺，逻辑过期时间设为 10秒
-        Shop shop = shopMapper.getById(1L);
-        if (shop != null) {
-            cacheClient.setWithLogicalExpire(
-                    RedisConstants.CACHE_SHOP_KEY + 1L,
-                    shop,
-                    10L,
-                    TimeUnit.SECONDS
-            );
-        }
-    }
-
-    @Test
-    void testIdWorker() {
-        for (int i = 0; i < 100; i++) {
-            long id = redisIdWorker.nextId("order");
-            System.out.println("id = " + id);
-        }
-    }
-
-
-
 }

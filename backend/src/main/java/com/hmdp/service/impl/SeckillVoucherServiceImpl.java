@@ -9,10 +9,12 @@ import com.hmdp.mapper.VoucherOrderMapper;
 import com.hmdp.service.ISeckillVoucherService;
 import com.hmdp.service.IVoucherOrderService;
 import com.hmdp.utils.RedisIdWorker;
+import com.hmdp.utils.SimpleRedisLock;
 import com.hmdp.utils.UserHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.framework.AopContext;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,7 @@ public class SeckillVoucherServiceImpl implements ISeckillVoucherService {
     private final SeckillVoucherMapper seckillVoucherMapper;
     private final RedisIdWorker redisIdWorker;
     private final VoucherOrderMapper voucherOrderMapper;
+    private final StringRedisTemplate stringRedisTemplate;
 
     @Override
     public void save(SeckillVoucher seckillVoucher) {
@@ -55,13 +58,20 @@ public class SeckillVoucherServiceImpl implements ISeckillVoucherService {
 
         UserDTO user = UserHolder.getUser();
 
-        synchronized(user.getId().toString().intern()){
+        //创建锁对象
+        SimpleRedisLock simpleRedisLock = new SimpleRedisLock("order:" + user.getId(), stringRedisTemplate);
+        boolean isLock = simpleRedisLock.tryLock(60L);
+        if(!isLock){
+            return Result.error("请勿重复下单！");
+        }
+        try {
+            //获取代理对象(事务)
             ISeckillVoucherService proxy = (ISeckillVoucherService) AopContext.currentProxy();
             return proxy.createVoucherOrder(voucherId);
+        } finally {
+            //释放锁
+            simpleRedisLock.unLock();
         }
-
-
-
 
     }
 
