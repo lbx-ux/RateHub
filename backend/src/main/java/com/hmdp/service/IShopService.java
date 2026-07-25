@@ -14,7 +14,7 @@ public interface IShopService {
 
     void updateById(Shop shop);
 
-    List<ShopVO> queryShopByType(Integer typeId, int current, int pageSize);
+    List<ShopVO> queryShopByType(Integer typeId, int current, int pageSize, String sortBy);
 
     List<ShopVO> queryShopByName(String name, int current, int pageSize);
 

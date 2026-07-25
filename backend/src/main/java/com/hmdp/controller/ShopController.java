@@ -66,10 +66,11 @@ public class ShopController {
     @GetMapping("/of/type")
     public Result queryShopByType(
             @RequestParam("typeId") Integer typeId,
-            @RequestParam(value = "current", defaultValue = "1") Integer current
+            @RequestParam(value = "current", defaultValue = "1") Integer current,
+            @RequestParam(value = "sortBy", required = false) String sortBy
     ) {
         // 根据类型分页查询
-        List<ShopVO> list = shopService.queryShopByType(typeId, current, SystemConstants.DEFAULT_PAGE_SIZE);
+        List<ShopVO> list = shopService.queryShopByType(typeId, current, SystemConstants.DEFAULT_PAGE_SIZE, sortBy);
         // 返回数据
         return Result.success(list);
     }

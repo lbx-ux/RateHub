@@ -29,10 +29,20 @@ public interface ShopMapper {
             "WHERE id = #{id}")
     void update(Shop shop);
 
-    @Select("SELECT s.*, " +
+    @Select("<script>" +
+            "SELECT s.*, " +
             "  (EXISTS (SELECT 1 FROM tb_voucher v WHERE v.shop_id = s.id)) AS has_voucher " +
-            "FROM tb_shop s WHERE s.type_id = #{typeId}")
-    List<ShopVO> queryShopByType(@Param("typeId") Integer typeId);
+            "FROM tb_shop s WHERE s.type_id = #{typeId} " +
+            "<choose>" +
+            "  <when test='sortBy != null and sortBy == \"comments\"'>" +
+            "    ORDER BY s.comments DESC " +
+            "  </when>" +
+            "  <when test='sortBy != null and sortBy == \"score\"'>" +
+            "    ORDER BY s.score DESC " +
+            "  </when>" +
+            "</choose>" +
+            "</script>")
+    List<ShopVO> queryShopByType(@Param("typeId") Integer typeId, @Param("sortBy") String sortBy);
 
     @Select("<script>" +
             "SELECT s.*, " +

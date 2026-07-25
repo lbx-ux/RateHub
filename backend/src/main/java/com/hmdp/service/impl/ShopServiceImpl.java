@@ -9,14 +9,9 @@ import com.hmdp.service.IShopService;
 import com.hmdp.utils.CacheClient;
 import cn.hutool.json.JSONUtil;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.Cursor;
-import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -30,10 +25,6 @@ public class ShopServiceImpl implements IShopService {
     private final StringRedisTemplate stringRedisTemplate;
     private final CacheClient cacheClient;
 
-    /** 店铺列表缓存 Key 前缀，格式: cache:shop:list:{typeId}:{current} */
-    private static final String CACHE_SHOP_LIST_KEY = "cache:shop:list:";
-    /** 店铺列表缓存 TTL（分钟） */
-    private static final long CACHE_SHOP_LIST_TTL = 720L;
 
     /**
      * 根据店铺ID查询店铺信息
@@ -56,8 +47,7 @@ public class ShopServiceImpl implements IShopService {
     public void save(Shop shop) {
         // 1. 写入数据库
         shopMapper.insert(shop);
-        // 2. 清除该 typeId 下所有分页缓存，避免新数据不可见
-        clearShopListCache(shop.getTypeId());
+
     }
 
     /**
@@ -71,37 +61,10 @@ public class ShopServiceImpl implements IShopService {
         shopMapper.update(shop);
         // 2. 删除单条店铺缓存（保证详情页一致性）
         stringRedisTemplate.delete(CACHE_SHOP_KEY + shop.getId());
-        // 3. 清除该 typeId 下所有分页缓存（保证列表页一致性）
-        clearShopListCache(shop.getTypeId());
+
     }
 
-    /**
-     * 通过 Redis SCAN 命令删除指定 typeId 下所有列表分页缓存。
-     * 使用 execute(RedisCallback) 访问底层连接，避免 KEYS 命令在大数据集下阻塞 Redis。
-     *
-     * @param typeId 店铺类型ID
-     */
-    private void clearShopListCache(Long typeId) {
-        String pattern = CACHE_SHOP_LIST_KEY + typeId + ":*";
-        try {
-            // 通过 RedisCallback 访问底层连接执行 SCAN
-            List<String> keys = stringRedisTemplate.execute((RedisCallback<List<String>>) connection -> {
-                List<String> result = new ArrayList<>();
-                Cursor<byte[]> cursor = connection.scan(
-                        ScanOptions.scanOptions().match(pattern).count(100).build());
-                while (cursor.hasNext()) {
-                    result.add(new String(cursor.next(), StandardCharsets.UTF_8));
-                }
-                return result;
-            });
-            if (keys != null && !keys.isEmpty()) {
-                stringRedisTemplate.delete(keys);
-            }
-        } catch (Exception e) {
-            // 降级兜底：至少删除第 1 页，保证首页数据不陈旧
-            stringRedisTemplate.delete(CACHE_SHOP_LIST_KEY + typeId + ":1");
-        }
-    }
+
 
     /**
      * 根据店铺类型分页查询店铺列表（带 Redis 缓存，TTL 5 分钟）
@@ -112,25 +75,10 @@ public class ShopServiceImpl implements IShopService {
      * @return 店铺列表
      */
     @Override
-    public List<ShopVO> queryShopByType(Integer typeId, int current, int pageSize) {
-        // 1. 拼接缓存 Key，区分不同类型和页码
-        String cacheKey = CACHE_SHOP_LIST_KEY + typeId + ":" + current;
-
-        // 2. 优先从 Redis 读取
-        String json = stringRedisTemplate.opsForValue().get(cacheKey);
-        if (json != null && !json.isEmpty()) {
-            return JSONUtil.toList(json, ShopVO.class);
-        }
-
-        // 3. 缓存未命中，查询数据库
+    public List<ShopVO> queryShopByType(Integer typeId, int current, int pageSize, String sortBy) {
+        // 直接查询数据库，不再使用 Redis 缓存商铺分页列表
         PageHelper.startPage(current, pageSize);
-        List<ShopVO> list = shopMapper.queryShopByType(typeId);
-
-        // 4. 将结果写入 Redis，设置 5 分钟 TTL
-        stringRedisTemplate.opsForValue().set(
-                cacheKey, JSONUtil.toJsonStr(list), CACHE_SHOP_LIST_TTL, TimeUnit.MINUTES);
-
-        return list;
+        return shopMapper.queryShopByType(typeId, sortBy);
     }
 
     /**
