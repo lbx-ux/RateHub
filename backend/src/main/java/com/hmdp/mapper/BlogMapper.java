@@ -35,4 +35,7 @@ public interface BlogMapper {
 
     @Update("UPDATE tb_blog SET liked = IF(liked > 0, liked - 1, 0) WHERE id = #{id}")
     int subLiked(Long id);
+
+    @Delete("DELETE FROM tb_blog WHERE id = #{id}")
+    int deleteById(Long id);
 }

@@ -6,87 +6,103 @@ import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.Follow;
 import com.hmdp.entity.User;
 import com.hmdp.mapper.FollowMapper;
+import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.IFollowService;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.UserHolder;
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.BooleanUtils;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
-
-import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-/**
- * <p>
- *  服务实现类
- * </p>
- *
- * @author 虎哥
- * @since 2021-12-22
- */
 @Service
+@RequiredArgsConstructor
 public class FollowServiceImpl implements IFollowService {
 
-    @Resource
-    private FollowMapper followMapper;
+    private final FollowMapper followMapper;
+    private final IUserService userService;
+    private final UserMapper userMapper;
+    private final StringRedisTemplate stringRedisTemplate;
 
-    @Resource
-    private IUserService userService;
+    @Override
+    public Result<?> queryMyFollows() {
+        UserDTO user = UserHolder.getUser();
+        List<Long> ids = followMapper.selectFollowUserIds(user.getId());
+        return Result.success(users(ids));
+    }
+
+    @Override
+    public Result<?> queryMyFans() {
+        UserDTO user = UserHolder.getUser();
+        List<Long> ids = followMapper.selectFanUserIds(user.getId());
+        return Result.success(users(ids));
+    }
+
+    public List<UserDTO> users(List<Long> ids){
+        if (ids == null || ids.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<UserDTO> users = new ArrayList<>();
+        for (Long id : ids) {
+            User u = userService.getById(id);
+            if (u != null) {
+                users.add(BeanUtil.copyProperties(u, UserDTO.class));
+            }
+        }
+        return users;
+    }
 
     @Override
     public Result<?> isFollow(Long followUserId) {
         UserDTO user = UserHolder.getUser();
-        if (user == null) {
-            return Result.success(false);
-        }
         int count = followMapper.selectCount(user.getId(), followUserId);
         return Result.success(count > 0);
     }
 
     @Override
     public Result<?> follow(Long followUserId, Boolean isFollow) {
-        UserDTO user = UserHolder.getUser();
-        if (user == null) {
-            return Result.error("请先登录");
-        }
-        Long userId = user.getId();
-        if (Boolean.TRUE.equals(isFollow)) {
+        Long userId = UserHolder.getUser().getId();
+        String key = "follow:" + userId;
+        if (BooleanUtils.isTrue(isFollow)) {
             int count = followMapper.selectCount(userId, followUserId);
             if (count == 0) {
                 Follow follow = new Follow();
                 follow.setUserId(userId);
                 follow.setFollowUserId(followUserId);
-                followMapper.insert(follow);
+                boolean isSuccess = followMapper.insert(follow);
+                if(isSuccess){
+                    stringRedisTemplate.opsForSet().add(key, followUserId.toString());
+                }
             }
         } else {
-            followMapper.delete(userId, followUserId);
+            boolean isSuccess=followMapper.delete(userId, followUserId);
+            if(isSuccess){
+                stringRedisTemplate.opsForSet().remove(key, followUserId.toString());
+            }
         }
         return Result.success();
     }
 
     @Override
     public Result<?> followCommons(Long followUserId) {
-        UserDTO user = UserHolder.getUser();
-        if (user == null) {
+        Long userId = UserHolder.getUser().getId();
+        String key1="follow:"+userId;
+        String key2="follow:"+followUserId;
+        Set<String> commonFriends=stringRedisTemplate.opsForSet().intersect(key1,key2);
+        if(commonFriends==null||commonFriends.isEmpty()){
             return Result.success(Collections.emptyList());
         }
-        Long userId = user.getId();
-        List<Long> myFollows = followMapper.selectFollowUserIds(userId);
-        List<Long> targetFollows = followMapper.selectFollowUserIds(followUserId);
-        if (myFollows == null || myFollows.isEmpty() || targetFollows == null || targetFollows.isEmpty()) {
-            return Result.success(Collections.emptyList());
-        }
-        myFollows.retainAll(targetFollows);
-        if (myFollows.isEmpty()) {
-            return Result.success(Collections.emptyList());
-        }
-        List<UserDTO> users = new ArrayList<>();
-        for (Long id : myFollows) {
-            User u = userService.getById(id);
-            if (u != null) {
-                users.add(BeanUtil.copyProperties(u, UserDTO.class));
-            }
-        }
+        //将 Set<String> 转换为 List<Long>
+        List<Long>ids=commonFriends.stream().map(Long::valueOf).collect(Collectors.toList());
+        List<UserDTO> users=userMapper.listByIds(ids)
+                .stream()
+                .map(user -> BeanUtil.copyProperties(user, UserDTO.class))
+                .collect(Collectors.toList());
         return Result.success(users);
     }
 }

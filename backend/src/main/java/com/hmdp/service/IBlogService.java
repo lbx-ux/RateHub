@@ -19,4 +19,6 @@ public interface IBlogService {
     void updateLiked(Long id);
 
     Result<?> queryBlogLikes(Long id);
+
+    Result<?> deleteBlog(Long id);
 }

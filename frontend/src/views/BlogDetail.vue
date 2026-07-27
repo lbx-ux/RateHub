@@ -14,8 +14,21 @@
       <!-- 左边日记正文栏 -->
       <div class="blog-left-content">
         <article class="blog-main-card rh-card">
-          <!-- 标题 -->
-          <h1 class="blog-title">{{ blog.title }}</h1>
+          <!-- 标题与删除选项 -->
+          <div class="blog-title-header">
+            <h1 class="blog-title">{{ blog.title }}</h1>
+            <el-button 
+              v-if="isSelf"
+              type="danger" 
+              plain
+              size="small"
+              class="delete-note-btn"
+              @click="handleDeleteBlog"
+            >
+              <el-icon class="btn-icon"><Delete /></el-icon>
+              删除笔记
+            </el-button>
+          </div>
           <div class="blog-meta-line">
             <span class="pub-time">发布于：{{ formatTime(blog.createTime) }}</span>
             <span class="divider">|</span>
@@ -133,7 +146,7 @@
           </div>
           <div class="author-divider"></div>
           <p class="author-bio">
-            {{ followed ? '已收录于您的关注清单中。' : '关注达人，第一时间接收 TA 的最新城市美食探店情报。' }}
+            {{ isSelf ? '这是您发布的美食探店日记。' : (followed ? '已收录于您的关注清单中。' : '关注达人，第一时间接收 TA 的最新城市美食探店情报。') }}
           </p>
           <div class="author-action-row" v-if="!isSelf">
             <el-button 
@@ -176,7 +189,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Star, StarFilled, ArrowRight } from '@element-plus/icons-vue'
+import { Star, StarFilled, ArrowRight, Delete } from '@element-plus/icons-vue'
 import request from '../utils/request'
 import { useUserStore } from '../stores/user'
 
@@ -323,6 +336,30 @@ const handleLike = async () => {
   }
 }
 
+const handleDeleteBlog = () => {
+  ElMessageBox.confirm(
+    '确定要永久删除这篇探店笔记吗？删除后相关的互动记录将同步清除，且无法恢复。',
+    '删除确认',
+    {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(async () => {
+    try {
+      const res = await request.delete(`/blog/${blogId}`)
+      if (res.code === 200) {
+        ElMessage.success('探店笔记已成功删除')
+        router.replace('/profile')
+      } else {
+        ElMessage.error(res.msg || '删除失败')
+      }
+    } catch (error) {
+      ElMessage.error('网络或服务异常，删除失败')
+    }
+  }).catch(() => {})
+}
+
 const formatTime = (timeStr) => {
   if (!timeStr) return ''
   const d = new Date(timeStr)
@@ -387,11 +424,27 @@ const submitComment = () => {
   transform: none;
 }
 
+.blog-title-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
 .blog-title {
   font-size: 26px;
   font-weight: 800;
   color: var(--rh-text-main);
   line-height: 1.3;
+  margin: 0;
+  flex: 1;
+}
+
+.delete-note-btn {
+  border-radius: 16px !important;
+  font-weight: 600;
+  flex-shrink: 0;
+  margin-top: 4px;
 }
 
 .blog-meta-line {

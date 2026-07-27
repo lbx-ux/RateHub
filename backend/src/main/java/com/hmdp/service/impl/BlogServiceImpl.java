@@ -161,4 +161,25 @@ public class BlogServiceImpl implements IBlogService {
         blog.setIsLike(score != null);
     }
 
+    @Override
+    public Result<?> deleteBlog(Long id) {
+        UserDTO user = UserHolder.getUser();
+        if (user == null) {
+            return Result.error("请先登录！");
+        }
+        Blog blog = blogMapper.getById(id);
+        if (blog == null) {
+            return Result.error("探店笔记不存在！");
+        }
+        if (!blog.getUserId().equals(user.getId())) {
+            return Result.error("您无权删除他人的探店笔记！");
+        }
+        int row = blogMapper.deleteById(id);
+        if (row > 0) {
+            // 清理该笔记的 Redis 点赞排行榜与缓存记录
+            stringRedisTemplate.delete("blog:liked:" + id);
+            return Result.success();
+        }
+        return Result.error("删除失败！");
+    }
 }

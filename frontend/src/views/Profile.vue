@@ -56,14 +56,25 @@
                   <div class="blog-mini-body">
                     <h4 class="blog-mini-title text-pretty">{{ b.title }}</h4>
                     <div class="blog-mini-footer">
-                      <span class="stats-item">
-                        <el-icon><Star /></el-icon>
-                        {{ b.liked || 0 }}
-                      </span>
-                      <span class="stats-item">
-                        <el-icon><ChatLineRound /></el-icon>
-                        {{ b.comments || 0 }}
-                      </span>
+                      <div class="stats-group">
+                        <span class="stats-item">
+                          <el-icon><Star /></el-icon>
+                          {{ b.liked || 0 }}
+                        </span>
+                        <span class="stats-item">
+                          <el-icon><ChatLineRound /></el-icon>
+                          {{ b.comments || 0 }}
+                        </span>
+                      </div>
+                      <el-button 
+                        type="danger" 
+                        link
+                        size="small"
+                        class="delete-mini-btn"
+                        @click.stop="handleDeleteMyBlog(b.id)"
+                      >
+                        <el-icon><Delete /></el-icon>
+                      </el-button>
                     </div>
                   </div>
                 </div>
@@ -167,6 +178,36 @@
             </div>
           </el-tab-pane>
 
+          <!-- 关注列表 Tab -->
+          <el-tab-pane label="我的关注" name="follows">
+            <div class="tab-content-panel" v-loading="myFollowsLoading">
+              <div class="common-user-grid" v-if="myFollows.length > 0">
+                <div 
+                  v-for="u in myFollows" 
+                  :key="u.id" 
+                  class="common-user-card-pc rh-card"
+                  @click="toUserDetail(u.id)"
+                >
+                  <img :src="u.icon || '/imgs/icons/default-icon.png'" class="common-user-avatar" />
+                  <div class="common-user-info">
+                    <span class="common-user-name">{{ u.nickName }}</span>
+                    <span class="common-user-desc">常居：杭州市 | 探店达人</span>
+                  </div>
+                  <el-button 
+                    type="danger" 
+                    plain 
+                    size="small" 
+                    class="unfollow-action-btn"
+                    @click.stop="handleUnfollow(u.id)"
+                  >
+                    取消关注
+                  </el-button>
+                </div>
+              </div>
+              <el-empty v-else-if="!myFollowsLoading" description="您目前尚未关注任何达人，去主页发现有趣的人吧~" />
+            </div>
+          </el-tab-pane>
+
           <!-- 评价 Tab -->
           <el-tab-pane label="我的评价" name="comments">
             <div class="tab-content-panel">
@@ -176,8 +217,31 @@
 
           <!-- 粉丝 Tab -->
           <el-tab-pane label="我的粉丝" name="fans">
-            <div class="tab-content-panel">
-              <el-empty description="暂无粉丝关注" />
+            <div class="tab-content-panel" v-loading="myFansLoading">
+              <div class="common-user-grid" v-if="myFans.length > 0">
+                <div 
+                  v-for="u in myFans" 
+                  :key="u.id" 
+                  class="common-user-card-pc rh-card"
+                  @click="toUserDetail(u.id)"
+                >
+                  <img :src="u.icon || '/imgs/icons/default-icon.png'" class="common-user-avatar" />
+                  <div class="common-user-info">
+                    <span class="common-user-name">{{ u.nickName }}</span>
+                    <span class="common-user-desc">常居：杭州市 | 活跃粉丝</span>
+                  </div>
+                  <el-button 
+                    type="primary" 
+                    plain 
+                    size="small" 
+                    class="unfollow-action-btn"
+                    @click.stop="toUserDetail(u.id)"
+                  >
+                    查看主页
+                  </el-button>
+                </div>
+              </div>
+              <el-empty v-else-if="!myFansLoading" description="暂无粉丝关注，发篇精彩笔记吸引大家吧~" />
             </div>
           </el-tab-pane>
         </el-tabs>
@@ -190,7 +254,7 @@
 import { ref, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Location, EditPen, SwitchButton, Star, StarFilled, ChatLineRound } from '@element-plus/icons-vue'
+import { Location, EditPen, SwitchButton, Star, StarFilled, ChatLineRound, Delete } from '@element-plus/icons-vue'
 import request from '../utils/request'
 import { useUserStore } from '../stores/user'
 
@@ -214,6 +278,12 @@ const followParams = reactive({
   minTime: 0,
   offset: 0
 })
+
+// 我的关注与我的粉丝
+const myFollows = ref([])
+const myFollowsLoading = ref(false)
+const myFans = ref([])
+const myFansLoading = ref(false)
 
 onMounted(() => {
   queryUserProfile()
@@ -259,6 +329,30 @@ const queryMyBlogs = async () => {
   } catch (error) {
     console.error(error)
   }
+}
+
+const handleDeleteMyBlog = (id) => {
+  ElMessageBox.confirm(
+    '确定要永久删除这篇探店笔记吗？删除后不可恢复。',
+    '删除确认',
+    {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(async () => {
+    try {
+      const res = await request.delete(`/blog/${id}`)
+      if (res.code === 200) {
+        ElMessage.success('笔记已成功删除')
+        queryMyBlogs()
+      } else {
+        ElMessage.error(res.msg || '删除失败')
+      }
+    } catch (error) {
+      ElMessage.error('网络异常，删除失败')
+    }
+  }).catch(() => {})
 }
 
 // 达人投递流滚动分页加载
@@ -312,7 +406,53 @@ const onTabChange = (name) => {
     queryMyBlogs()
   } else if (name === 'orders') {
     queryMyOrders()
+  } else if (name === 'follows') {
+    queryMyFollowsList()
+  } else if (name === 'fans') {
+    queryMyFansList()
   }
+}
+
+const queryMyFollowsList = async () => {
+  try {
+    myFollowsLoading.value = true
+    const res = await request.get('/follow/of/me')
+    if (res.code === 200) {
+      myFollows.value = res.data || []
+    }
+  } catch (error) {
+    console.error(error)
+  } finally {
+    myFollowsLoading.value = false
+  }
+}
+
+const queryMyFansList = async () => {
+  try {
+    myFansLoading.value = true
+    const res = await request.get('/follow/fans/me')
+    if (res.code === 200) {
+      myFans.value = res.data || []
+    }
+  } catch (error) {
+    console.error(error)
+  } finally {
+    myFansLoading.value = false
+  }
+}
+
+const handleUnfollow = async (targetId) => {
+  try {
+    await request.put(`/follow/${targetId}/false`)
+    ElMessage.success('已取消关注')
+    queryMyFollowsList()
+  } catch (error) {
+    ElMessage.error('操作失败')
+  }
+}
+
+const toUserDetail = (id) => {
+  router.push(`/user-detail?id=${id}`)
 }
 
 const queryMyOrders = async () => {
@@ -577,9 +717,25 @@ const toShop = (shopId) => {
 
 .blog-mini-footer {
   display: flex;
+  justify-content: space-between;
+  align-items: center;
   gap: 12px;
   font-size: 11px;
   color: var(--rh-text-light);
+}
+
+.stats-group {
+  display: flex;
+  gap: 12px;
+}
+
+.delete-mini-btn {
+  padding: 2px 4px !important;
+  height: auto !important;
+}
+
+.delete-mini-btn:hover {
+  color: #ff4d4f !important;
 }
 
 .stats-item {
@@ -764,5 +920,71 @@ const toShop = (shopId) => {
 .order-time {
   font-size: 12px;
   color: var(--rh-text-light);
+}
+
+/* 关注列表与粉丝列表卡片 */
+.common-user-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.common-user-card-pc {
+  background: white;
+  border: 1px solid var(--rh-border);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  cursor: pointer;
+  border-radius: var(--rh-radius-md);
+  transition: all 0.25s ease;
+}
+
+.common-user-card-pc:hover {
+  border-color: var(--rh-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 102, 51, 0.08);
+}
+
+.common-user-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.common-user-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.common-user-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--rh-text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.common-user-desc {
+  font-size: 12px;
+  color: var(--rh-text-light);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.unfollow-action-btn {
+  border-radius: 16px !important;
+  font-size: 12px !important;
+  padding: 6px 14px !important;
+  flex-shrink: 0;
 }
 </style>

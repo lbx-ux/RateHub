@@ -6,6 +6,8 @@ import com.hmdp.dto.Result;
 import com.hmdp.entity.User;
 
 import javax.servlet.http.HttpSession;
+import java.util.Collection;
+import java.util.List;
 
 public interface IUserService {
 
@@ -18,4 +20,5 @@ public interface IUserService {
     Result updateProfile(com.hmdp.dto.UserUpdateDTO userUpdateDTO, String token);
     
     Result updatePassword(String oldPassword, String newPassword);
+
 }

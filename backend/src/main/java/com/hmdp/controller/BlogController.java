@@ -46,6 +46,10 @@ public class BlogController {
         return blogService.queryBlogById(id);
     }
 
+    @DeleteMapping("/{id}")
+    public Result<?> deleteBlog(@PathVariable("id") Long id) {
+        return blogService.deleteBlog(id);
+    }
 
     @GetMapping("/of/me")
     public Result<?> queryMyBlog(@RequestParam(value = "current", defaultValue = "1") Integer current) {
