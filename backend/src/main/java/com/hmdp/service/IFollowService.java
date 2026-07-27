@@ -1,6 +1,6 @@
 package com.hmdp.service;
 
-import com.hmdp.entity.Follow;
+import com.hmdp.dto.Result;
 
 /**
  * <p>
@@ -12,4 +12,9 @@ import com.hmdp.entity.Follow;
  */
 public interface IFollowService {
 
+    Result<?> isFollow(Long followUserId);
+
+    Result<?> follow(Long followUserId, Boolean isFollow);
+
+    Result<?> followCommons(Long followUserId);
 }

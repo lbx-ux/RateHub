@@ -95,7 +95,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import request from '../utils/request'
@@ -137,6 +137,33 @@ onMounted(() => {
   // 绑定全局滚动监听 (针对 PC 宽屏)
   window.addEventListener('scroll', handleWindowScroll)
 })
+
+onActivated(() => {
+  // 当从博文详情页等路由返回首页时（由于 keep-alive 页面缓存），触发 onActivated 静默对齐点赞状态
+  refreshBlogsStatus()
+})
+
+const refreshBlogsStatus = async () => {
+  if (blogs.value.length === 0) return
+  try {
+    // 重新拉取当前已加载页面的热门博文，静默校准列表中已存在博文的最新点赞数与高亮状态，不打断用户滚动位置
+    for (let page = 1; page <= current.value; page++) {
+      const res = await request.get(`/blog/hot?current=${page}`)
+      if (res.code === 200 && res.data) {
+        const latestMap = new Map(res.data.map(item => [item.id, item]))
+        blogs.value.forEach(b => {
+          if (latestMap.has(b.id)) {
+            const latest = latestMap.get(b.id)
+            b.liked = latest.liked
+            b.isLike = latest.isLike
+          }
+        })
+      }
+    }
+  } catch (error) {
+    console.error(error)
+  }
+}
 
 const queryTypes = async () => {
   try {

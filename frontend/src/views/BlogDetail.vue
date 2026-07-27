@@ -49,6 +49,27 @@
               </el-icon>
               <span>{{ blog.isLike ? '已赞' : '点赞支持' }} ({{ blog.liked || 0 }})</span>
             </el-button>
+
+            <!-- 
+              【难点与UI优化 - 最早点赞 TOP5 排行堆叠头像展示】：
+              采用 Avatar Stack（头像层叠）设计手法，利用 idx 倒序设置 z-index: 10 - idx，
+              确保排名越靠前的用户头像展示在最上层；搭配 CSS 悬浮微动画，增强排行互动视觉体验。
+            -->
+            <div class="liked-top-ranking" v-if="likes && likes.length > 0">
+              <div class="avatar-stack">
+                <img 
+                  v-for="(u, idx) in likes" 
+                  :key="u.id" 
+                  :src="u.icon || '/imgs/icons/default-icon.png'" 
+                  :alt="u.nickName" 
+                  :title="u.nickName"
+                  class="rank-avatar"
+                  :style="{ zIndex: 10 - idx }"
+                  @click="toOtherUserDetail(u.id)"
+                />
+              </div>
+              <span class="ranking-text">{{ blog.liked || likes.length }}人点赞</span>
+            </div>
           </div>
         </article>
 
@@ -127,9 +148,12 @@
           </div>
         </div>
 
-        <!-- 2. 点赞动态列表 -->
+        <!-- 
+          2. 点赞动态列表 / 点赞排行榜 (TOP5)
+          与后端 SortedSet(ZSet) 倒序数据完全打通，展示最早给予点赞的前 5 名达人
+        -->
         <div class="likes-avatar-card rh-card" v-if="likes.length > 0">
-          <h3>点赞动态</h3>
+          <h3>点赞排行榜 (TOP5)</h3>
           <div class="author-divider"></div>
           <div class="likes-flow">
             <div 
@@ -228,6 +252,10 @@ const queryShopDetail = async (shopId) => {
   }
 }
 
+/**
+ * 查询点赞排行榜（最早点赞的 Top 5 用户）
+ * 与后端 GET /blog/likes/{id} 对接，后端通过 Redis ZSet 倒序捞取并解决 MySQL 乱序问题后返回
+ */
 const queryLikeList = async () => {
   try {
     const res = await request.get(`/blog/likes/${blogId}`)
@@ -408,13 +436,16 @@ const submitComment = () => {
   letter-spacing: 0.5px;
 }
 
-/* 点赞按钮 */
+/* 点赞按钮与排行榜 */
 .interaction-footer {
   margin-top: 40px;
   border-top: 1px solid var(--rh-border);
   padding-top: 24px;
   display: flex;
+  align-items: center;
   justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
 }
 
 .huge-like-btn {
@@ -427,6 +458,47 @@ const submitComment = () => {
 
 .huge-like-btn.is-liked {
   box-shadow: 0 4px 16px rgba(255, 102, 51, 0.25);
+}
+
+.liked-top-ranking {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #FAFAFC;
+  padding: 6px 16px 6px 12px;
+  border-radius: 24px;
+  border: 1px solid var(--rh-border);
+}
+
+.avatar-stack {
+  display: flex;
+  align-items: center;
+}
+
+.rank-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  object-fit: cover;
+  margin-left: -8px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.avatar-stack .rank-avatar:first-child {
+  margin-left: 0;
+}
+
+.rank-avatar:hover {
+  transform: translateY(-2px) scale(1.15);
+  z-index: 20 !important;
+}
+
+.ranking-text {
+  font-size: 13px;
+  color: var(--rh-text-secondary);
+  font-weight: 500;
 }
 
 /* 推荐商铺 */

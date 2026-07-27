@@ -9,6 +9,7 @@ import com.hmdp.dto.ResultCode;
 import com.hmdp.dto.UserDTO;
 import com.hmdp.utils.UserHolder;
 import com.hmdp.entity.UserInfo;
+import com.hmdp.entity.User;
 import com.hmdp.service.IUserInfoService;
 import com.hmdp.service.IUserService;
 import lombok.RequiredArgsConstructor;
@@ -51,7 +52,7 @@ public class UserController {
      * @return 无
      */
     @PostMapping("/logout")
-    public Result logout(HttpServletRequest request){
+    public Result<?> logout(HttpServletRequest request){
         // 从请求头获取 token
         String token = request.getHeader("authorization");
         if (StrUtil.isNotBlank(token)) {
@@ -61,13 +62,13 @@ public class UserController {
         return Result.success();
     }
     @PutMapping("/update")
-    public Result updateProfile(@RequestBody com.hmdp.dto.UserUpdateDTO userUpdateDTO, HttpServletRequest request) {
+    public Result<?> updateProfile(@RequestBody com.hmdp.dto.UserUpdateDTO userUpdateDTO, HttpServletRequest request) {
         String token = request.getHeader("authorization");
         return userService.updateProfile(userUpdateDTO, token);
     }
 
     @PutMapping("/password")
-    public Result updatePassword(@RequestBody java.util.Map<String, String> params) {
+    public Result<?> updatePassword(@RequestBody java.util.Map<String, String> params) {
         String oldPassword = params.get("oldPassword");
         String newPassword = params.get("newPassword");
         if (StrUtil.isBlank(newPassword)) {
@@ -98,5 +99,18 @@ public class UserController {
         info.setUpdateTime(null);
         // 返回
         return Result.success(info);
+    }
+
+    /**
+     * 根据用户 ID 查询用户信息
+     */
+    @GetMapping("/{id}")
+    public Result<UserDTO> queryUserById(@PathVariable("id") Long userId){
+        User user = userService.getById(userId);
+        if (user == null) {
+            return Result.success();
+        }
+        UserDTO userDTO = cn.hutool.core.bean.BeanUtil.copyProperties(user, UserDTO.class);
+        return Result.success(userDTO);
     }
 }

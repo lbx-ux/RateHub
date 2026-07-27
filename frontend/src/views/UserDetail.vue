@@ -1,5 +1,17 @@
 <template>
   <div class="profile-pc-page rh-container" v-loading="pageLoading">
+    <!-- 左上角返回上一页按钮 -->
+    <div class="profile-top-bar">
+      <el-button 
+        type="default" 
+        icon="ArrowLeft" 
+        class="top-back-btn" 
+        @click="goBack"
+      >
+        返回上一页
+      </el-button>
+    </div>
+
     <!-- 顶部大横幅 -->
     <div class="profile-hero-banner">
       <div class="banner-overlay"></div>
@@ -35,9 +47,6 @@
               @click="handleFollow"
             >
               {{ followed ? '已关注' : '关注达人' }}
-            </el-button>
-            <el-button type="default" plain class="back-btn" @click="goBack">
-              返回上一页
             </el-button>
           </div>
         </div>
@@ -111,7 +120,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Location, Star, ChatLineRound } from '@element-plus/icons-vue'
+import { Location, Star, ChatLineRound, ArrowLeft } from '@element-plus/icons-vue'
 import request from '../utils/request'
 
 const route = useRoute()
@@ -256,7 +265,33 @@ const toBlogDetail = (id) => {
 .profile-pc-page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
+}
+
+/* 左上角顶部返回导航 */
+.profile-top-bar {
+  display: flex;
+  align-items: center;
+  margin-bottom: -6px;
+}
+
+.top-back-btn {
+  border-radius: 20px !important;
+  padding: 8px 18px !important;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--rh-text-main);
+  background: white;
+  border: 1px solid var(--rh-border);
+  box-shadow: var(--rh-shadow-sm);
+  transition: all 0.25s ease;
+}
+
+.top-back-btn:hover {
+  color: var(--rh-primary);
+  border-color: var(--rh-primary);
+  transform: translateX(-3px);
+  box-shadow: var(--rh-shadow-md);
 }
 
 /* 顶部封面图 */
