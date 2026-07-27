@@ -3,11 +3,13 @@ package com.hmdp.service.impl;
 import com.hmdp.dto.Result;
 import com.hmdp.entity.Shop;
 import com.hmdp.entity.Voucher;
+import com.hmdp.mapper.SeckillVoucherMapper;
 import com.hmdp.mapper.ShopMapper;
 import com.hmdp.mapper.VoucherMapper;
 import com.hmdp.entity.SeckillVoucher;
 import com.hmdp.service.ISeckillVoucherService;
 import com.hmdp.service.IVoucherService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.ScanOptions;
@@ -22,19 +24,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class VoucherServiceImpl implements IVoucherService {
 
-    @Resource
-    private VoucherMapper voucherMapper;
-
-    @Resource
+    private final VoucherMapper voucherMapper;
     private ISeckillVoucherService seckillVoucherService;
-
-    @Resource
-    private ShopMapper shopMapper;
-
-    @Resource
-    private StringRedisTemplate stringRedisTemplate;
+    private final ShopMapper shopMapper;
+    private final StringRedisTemplate stringRedisTemplate;
+    private final SeckillVoucherMapper seckillVoucherMapper;
 
     @Override
     public void save(Voucher voucher) {
@@ -60,7 +57,7 @@ public class VoucherServiceImpl implements IVoucherService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void addSeckillVoucher(Voucher voucher) {
         // 保存优惠券主体 (包含清除店铺列表缓存)
         save(voucher);
@@ -73,7 +70,12 @@ public class VoucherServiceImpl implements IVoucherService {
         seckillVoucher.setEndTime(voucher.getEndTime());
         seckillVoucher.setCreateTime(now);
         seckillVoucher.setUpdateTime(now);
-        seckillVoucherService.save(seckillVoucher);
+        seckillVoucherMapper.insert(seckillVoucher);
+
+        stringRedisTemplate.opsForValue().set(
+                "seckill:stock"+voucher.getId(),
+                voucher.getStock().toString()
+        );
     }
 
     /**

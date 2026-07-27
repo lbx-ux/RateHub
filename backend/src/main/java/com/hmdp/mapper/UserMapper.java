@@ -28,4 +28,7 @@ public interface UserMapper {
 
     @org.apache.ibatis.annotations.Update("UPDATE tb_user SET password = #{password} WHERE id = #{id}")
     void updatePassword(User user);
+
+    @Select("SELECT * FROM tb_user")
+    java.util.List<User> selectAll();
 }

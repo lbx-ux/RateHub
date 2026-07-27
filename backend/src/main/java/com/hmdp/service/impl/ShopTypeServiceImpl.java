@@ -23,7 +23,7 @@ public class ShopTypeServiceImpl implements IShopTypeService {
 
     @Override
     public Result<List<ShopType>> queryTypeList() {
-        String key="shop:type";
+        String key="cache:shop:type";
         String shopTypeJson=stringRedisTemplate.opsForValue().get(key);
         if(StrUtil.isNotBlank(shopTypeJson)){
             return Result.success(JSONUtil.toList(shopTypeJson, ShopType.class));
