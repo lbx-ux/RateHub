@@ -139,32 +139,22 @@ a:hover {
   border-radius: 20px !important;
 }
 
-/* 优雅的标题排版 */
+/* 优雅的现代标题排版 */
 .rh-section-title {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .rh-section-title h2 {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 800;
-  color: var(--rh-text-main);
-  position: relative;
-  padding-left: 12px;
-}
-
-.rh-section-title h2::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 18px;
-  background: var(--rh-primary);
-  border-radius: 2px;
+  color: #1a1a1a;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
 }
 
 .text-pretty {
