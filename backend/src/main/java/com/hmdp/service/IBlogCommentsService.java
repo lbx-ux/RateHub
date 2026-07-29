@@ -1,5 +1,6 @@
 package com.hmdp.service;
 
+import com.hmdp.dto.Result;
 import com.hmdp.entity.BlogComments;
 
 /**
@@ -12,4 +13,7 @@ import com.hmdp.entity.BlogComments;
  */
 public interface IBlogCommentsService {
 
+    Result<?> saveComment(BlogComments blogComments);
+
+    Result<?> queryCommentsByBlogId(Long blogId);
 }

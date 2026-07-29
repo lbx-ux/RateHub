@@ -72,5 +72,14 @@ public class BlogComments implements Serializable {
      */
     private LocalDateTime updateTime;
 
+    /**
+     * 用户昵称（非数据库表字段）
+     */
+    private String nickName;
+
+    /**
+     * 用户头像（非数据库表字段）
+     */
+    private String icon;
 
 }

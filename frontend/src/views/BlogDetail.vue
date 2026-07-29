@@ -93,7 +93,7 @@
             <span class="rec-tag">日记关联商户</span>
             <h3 class="shop-name">{{ shop.name }}</h3>
             <div class="rate-row">
-              <el-rate v-model="shopRating" disabled size="12px" color="#FF6633" />
+              <el-rate v-model="shopRating" disabled size="small" color="#FF6633" />
               <span class="score-text">{{ (shop.score / 10).toFixed(1) }}分</span>
               <span class="price-avg">人均 ￥{{ shop.avgPrice }}/人</span>
             </div>
@@ -106,7 +106,7 @@
 
         <!-- 评论区 -->
         <section class="comments-section rh-card">
-          <h3>评论留言 (2)</h3>
+          <h3>评论留言 ({{ blog.comments || comments.length || 0 }})</h3>
           <div class="cmt-divider"></div>
           
           <div class="cmt-input-row">
@@ -118,17 +118,20 @@
             <el-button type="primary" @click="submitComment">发表评论</el-button>
           </div>
 
-          <div class="cmt-list">
-            <div class="cmt-item">
-              <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=100" alt="Avatar" />
+          <div class="cmt-list" v-if="comments.length > 0">
+            <div class="cmt-item" v-for="cmt in comments" :key="cmt.id">
+              <img :src="cmt.icon || '/imgs/icons/default-icon.png'" alt="Avatar" />
               <div class="cmt-body">
                 <div class="cmt-user-row">
-                  <span class="cmt-username">米其林捕手</span>
-                  <span class="cmt-time">3小时前</span>
+                  <span class="cmt-username">{{ cmt.nickName || '已注销用户' }}</span>
+                  <span class="cmt-time">{{ formatCommentTime(cmt.createTime) }}</span>
                 </div>
-                <p class="cmt-text">PC版界面设计太舒服了！已经收藏了该文章，周末一定要去打卡西湖醋鱼。</p>
+                <p class="cmt-text">{{ cmt.content }}</p>
               </div>
             </div>
+          </div>
+          <div class="empty-cmt" v-else style="padding: 24px 0; text-align: center; color: #999; font-size: 14px;">
+            暂无评论，快来抢沙发吧~
           </div>
         </section>
       </div>
@@ -205,6 +208,7 @@ const followed = ref(false)
 const followLoading = ref(false)
 const pageLoading = ref(false)
 const commentText = ref('')
+const comments = ref([])
 
 const isSelf = computed(() => {
   return userStore.userInfo && userStore.userInfo.id === blog.value.userId
@@ -246,6 +250,7 @@ const queryBlogDetail = async () => {
       queryShopDetail(res.data.shopId)
       queryLikeList()
       checkFollowStatus()
+      queryComments()
     }
   } catch (error) {
     console.error(error)
@@ -383,10 +388,57 @@ const toShopDetail = () => {
   router.push(`/shop-detail?id=${shop.value.id}`)
 }
 
-const submitComment = () => {
-  if (!commentText.value.trim()) return
-  ElMessage.info('评论发表成功（演示）')
-  commentText.value = ''
+const queryComments = async () => {
+  try {
+    const res = await request.get(`/blog-comments?blogId=${blogId}`)
+    if (res.code === 200) {
+      comments.value = res.data || []
+    }
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+const formatCommentTime = (timeStr) => {
+  if (!timeStr) return '刚刚'
+  let date
+  if (Array.isArray(timeStr)) {
+    const [y, m, d, h = 0, min = 0, s = 0] = timeStr
+    date = new Date(y, m - 1, d, h, min, s)
+  } else {
+    const t = typeof timeStr === 'string' ? timeStr.replace(/-/g, '/').replace('T', ' ') : timeStr
+    date = new Date(t)
+  }
+  if (isNaN(date.getTime())) return '刚刚'
+  const diff = Math.floor((Date.now() - date.getTime()) / 1000)
+  if (diff < 60) return '刚刚'
+  if (diff < 3600) return `${Math.floor(diff / 60)}分钟前`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}小时前`
+  if (diff < 2592000) return `${Math.floor(diff / 86400)}天前`
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+const submitComment = async () => {
+  if (!commentText.value.trim()) {
+    ElMessage.warning('请输入评论内容')
+    return
+  }
+  try {
+    const res = await request.post('/blog-comments', {
+      blogId: Number(blogId),
+      content: commentText.value.trim()
+    })
+    if (res.code === 200) {
+      ElMessage.success('评论发表成功！')
+      commentText.value = ''
+      queryComments()
+      queryBlogDetail()
+    } else {
+      ElMessage.error(res.message || '评论失败')
+    }
+  } catch (error) {
+    ElMessage.error('评论失败，请先登录或稍后重试')
+  }
 }
 </script>
 
@@ -550,7 +602,7 @@ const submitComment = () => {
 
 .ranking-text {
   font-size: 13px;
-  color: var(--rh-text-secondary);
+  color: var(--rh-text-sub);
   font-weight: 500;
 }
 
@@ -645,6 +697,7 @@ const submitComment = () => {
   margin-bottom: 24px;
 }
 
+/* noinspection CssUnusedSymbol */
 .cmt-input-row :deep(.el-input__wrapper) {
   border-radius: 20px;
   background-color: #FAFAFC;

@@ -5,14 +5,6 @@ import org.apache.ibatis.annotations.*;
 
 import java.util.List;
 
-/**
- * <p>
- *  Mapper 接口
- * </p>
- *
- * @author 虎哥
- * @since 2021-12-22
- */
 public interface BlogMapper {
 
     @Select("SELECT * FROM tb_blog WHERE id = #{id}")
@@ -35,6 +27,9 @@ public interface BlogMapper {
 
     @Update("UPDATE tb_blog SET liked = IF(liked > 0, liked - 1, 0) WHERE id = #{id}")
     int subLiked(Long id);
+
+    @Update("UPDATE tb_blog SET comments = IFNULL(comments, 0) + 1 WHERE id = #{id}")
+    void addComments(Long id);
 
     @Delete("DELETE FROM tb_blog WHERE id = #{id}")
     int deleteById(Long id);

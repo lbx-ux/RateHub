@@ -44,7 +44,10 @@
     <!-- 3. PC 探店日记瀑布网格 -->
     <section class="blogs-section">
       <div class="rh-section-title">
-        <h2>热门探店日记</h2>
+        <div class="title-left">
+          <h2>热门探店日记</h2>
+          <span class="title-sub">TRENDING DIARIES</span>
+        </div>
         <span class="section-desc">探店达人真实试吃与心水安利</span>
       </div>
 
@@ -98,6 +101,7 @@
 import { ref, onMounted, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Star, StarFilled, ArrowRight, Loading } from '@element-plus/icons-vue'
 import request from '../utils/request'
 
 const router = useRouter()
@@ -319,6 +323,10 @@ const toBlogDetail = (id) => {
   background: #FFF;
   padding: 24px;
   justify-items: center;
+  /* 声明默认 CSS 变量以消除 IDE 未知变量报错，实际渲染由 Vue 动态内联注入覆盖 */
+  --cat-bg: var(--rh-primary-light);
+  --cat-border: rgba(255, 102, 51, 0.15);
+  --cat-shadow: rgba(255, 102, 51, 0.35);
 }
 
 .categories-section:hover {
@@ -375,7 +383,22 @@ const toBlogDetail = (id) => {
   color: var(--rh-primary);
 }
 
-/* 探店日记 */
+/* 探店日记标题层级 */
+.title-left {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.title-sub {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--rh-primary);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
 .section-desc {
   font-size: 13px;
   color: var(--rh-text-light);
@@ -457,15 +480,21 @@ const toBlogDetail = (id) => {
 }
 
 .blog-card-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 800;
   color: var(--rh-text-main);
-  line-height: 1.5;
-  height: 45px;
+  line-height: 1.45;
+  min-height: 46px;
+  max-height: 46px;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  transition: color 0.2s;
+}
+
+.blog-pc-card:hover .blog-card-title {
+  color: var(--rh-primary);
 }
 
 .author-info-line {

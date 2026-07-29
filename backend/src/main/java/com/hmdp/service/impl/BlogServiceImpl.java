@@ -4,7 +4,9 @@ import com.github.pagehelper.PageHelper;
 import com.hmdp.dto.Result;
 import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.Blog;
+import com.hmdp.mapper.BlogCommentsMapper;
 import com.hmdp.mapper.BlogMapper;
+import com.hmdp.mapper.FollowMapper;
 import com.hmdp.service.IBlogService;
 import com.hmdp.utils.UserHolder;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +16,8 @@ import org.springframework.stereotype.Service;
 import com.hmdp.entity.User;
 import com.hmdp.service.IUserService;
 import cn.hutool.core.bean.BeanUtil;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -27,8 +31,11 @@ public class BlogServiceImpl implements IBlogService {
     private final BlogMapper blogMapper;
     private final StringRedisTemplate stringRedisTemplate;
     private final IUserService userService;
+    private final FollowMapper followMapper;
+    private final BlogCommentsMapper blogCommentsMapper;
 
     @Override
+    @SuppressWarnings("resource")
     public List<Blog> queryMyBlog(Long userId, int current, int pageSize) {
         PageHelper.startPage(current, pageSize);
         List<Blog> records = blogMapper.queryMyBlog(userId);
@@ -40,6 +47,7 @@ public class BlogServiceImpl implements IBlogService {
     }
 
     @Override
+    @SuppressWarnings("resource")
     public List<Blog> queryHotBlog(int current, int pageSize) {
         PageHelper.startPage(current, pageSize);
         List<Blog> records = blogMapper.queryHotBlog();
@@ -58,6 +66,17 @@ public class BlogServiceImpl implements IBlogService {
         blog.setCreateTime(LocalDateTime.now());
         blog.setUpdateTime(LocalDateTime.now());
         blogMapper.insert(blog);
+
+        //Feed
+        List<Long> ids=followMapper.selectFanUserIds(user.getId());
+        if(ids==null||ids.isEmpty()){
+            return Result.success(blog.getId());
+        }
+        for(Long id:ids){
+            //用户的收信箱
+            String key="feed:"+id;
+            stringRedisTemplate.opsForZSet().add(key, blog.getId().toString(),System.currentTimeMillis());
+        }
         return Result.success(blog.getId());
     }
 
@@ -121,7 +140,7 @@ public class BlogServiceImpl implements IBlogService {
         // 我们直接利用 Java Stream 顺着有序的 ids 遍历调用 userService.getById(userId)，
         // 既完全杜绝了 MySQL 乱序问题，保证了点赞排行榜的时间顺序，又最大限度利用了单体查询的高效缓存。
         List<UserDTO> userDTOList = ids.stream()
-                .map(userId -> userService.getById(userId))
+                .map(userService::getById)
                 .filter(Objects::nonNull)
                 .map(user -> BeanUtil.copyProperties(user, UserDTO.class))
                 .collect(Collectors.toList());
@@ -162,11 +181,9 @@ public class BlogServiceImpl implements IBlogService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Result<?> deleteBlog(Long id) {
         UserDTO user = UserHolder.getUser();
-        if (user == null) {
-            return Result.error("请先登录！");
-        }
         Blog blog = blogMapper.getById(id);
         if (blog == null) {
             return Result.error("探店笔记不存在！");
@@ -175,11 +192,23 @@ public class BlogServiceImpl implements IBlogService {
             return Result.error("您无权删除他人的探店笔记！");
         }
         int row = blogMapper.deleteById(id);
-        if (row > 0) {
-            // 清理该笔记的 Redis 点赞排行榜与缓存记录
-            stringRedisTemplate.delete("blog:liked:" + id);
-            return Result.success();
+        if (row ==0) {
+            return Result.error("删除失败！");
         }
-        return Result.error("删除失败！");
+        // 级联删除该笔记下的所有评论，防止产生孤儿脏数据
+        blogCommentsMapper.deleteByBlogId(id);
+
+        // 清理该笔记的 Redis 点赞排行榜与缓存记录
+        stringRedisTemplate.delete("blog:liked:" + id);
+        //清理用户的收信箱
+        List<Long> ids=followMapper.selectFanUserIds(user.getId());
+        if(ids!=null){
+            for(Long userId:ids){
+                //用户的收信箱
+                String key="feed:"+userId;
+                stringRedisTemplate.opsForZSet().remove(key, blog.getId().toString());
+            }
+        }
+        return Result.success();
     }
 }

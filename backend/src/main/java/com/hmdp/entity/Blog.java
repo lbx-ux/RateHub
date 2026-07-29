@@ -57,12 +57,12 @@ public class Blog implements Serializable {
     /**
      * 点赞数量
      */
-    private Integer liked;
+    private Integer liked=0;
 
     /**
      * 评论数量
      */
-    private Integer comments;
+    private Integer comments=0;
 
     /**
      * 创建时间
