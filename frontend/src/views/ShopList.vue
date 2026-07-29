@@ -155,23 +155,16 @@
       </div>
 
       <!-- 右侧侧边栏 (PC 专属推荐) -->
-      <aside class="right-recommend-side">
+      <aside class="right-recommend-side" v-if="topShops && topShops.length > 0">
         <div class="recommend-card rh-card">
           <h3>精品好店推荐</h3>
           <div class="recommend-divider"></div>
           <div class="recommend-list">
-            <div class="rec-item" @click="toDetail(2)">
-              <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=150" alt="Rec" />
+            <div class="rec-item" v-for="shop in topShops" :key="shop.id" @click="toDetail(shop.id)">
+              <img :src="shop.images" alt="Rec" />
               <div class="rec-meta">
-                <h4>老杭州弄堂面馆</h4>
-                <p>拱墅区 · 人均￥22</p>
-              </div>
-            </div>
-            <div class="rec-item" @click="toDetail(3)">
-              <img src="https://images.unsplash.com/photo-1552566626-52f8b828add9?q=80&w=150" alt="Rec" />
-              <div class="rec-meta">
-                <h4>江南小灶私房菜</h4>
-                <p>西湖区 · 人均￥85</p>
+                <h4>{{ shop.name }}</h4>
+                <p>{{ shop.area }} · 人均￥{{ shop.avgPrice || 0 }}</p>
               </div>
             </div>
           </div>
@@ -194,6 +187,7 @@ const typeName = ref(route.query.name || '美食')
 const searchVal = ref('')
 const types = ref([])
 const shops = ref([])
+const topShops = ref([])
 const loading = ref(false)
 const finished = ref(false)
 
@@ -207,11 +201,34 @@ const params = reactive({
 
 onMounted(() => {
   queryShops()
+  queryTopShops()
   queryTypes()
   
   // 绑定滚动加载 (PC)
   window.addEventListener('scroll', handleWindowScroll)
 })
+
+const queryTopShops = async () => {
+  try {
+    const res = await request.get('/shop/of/type', { 
+      params: { 
+        typeId: params.typeId, 
+        current: 1, 
+        sortBy: 'score', 
+        x: params.x, 
+        y: params.y 
+      }
+    })
+    if (res.code === 200 && res.data) {
+      topShops.value = res.data.slice(0, 3).map(s => ({
+        ...s,
+        images: s.images ? s.images.split(',')[0] : '/imgs/icons/default-icon.png'
+      }))
+    }
+  } catch (error) {
+    console.error(error)
+  }
+}
 
 const queryTypes = async () => {
   try {
@@ -261,6 +278,7 @@ const selectType = (t) => {
   params.typeId = t.id
   typeName.value = t.name
   queryShops(true)
+  queryTopShops()
 }
 
 const changeSort = (sortField) => {
