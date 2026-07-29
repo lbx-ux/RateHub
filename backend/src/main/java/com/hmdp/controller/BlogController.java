@@ -74,4 +74,10 @@ public class BlogController {
         List<Blog> records = blogService.queryMyBlog(id, current, SystemConstants.MAX_PAGE_SIZE);
         return Result.success(records);
     }
+
+    @GetMapping("/of/follow")
+    public Result<?> queryBlogByFollow(@RequestParam("lastId")Long max,@RequestParam(value="offset",defaultValue = "0") Integer offset){
+        return blogService.queryBlogByfollow(max,offset);
+    }
+
 }

@@ -68,12 +68,7 @@ public class MinioService {
      * @return 完整的 URL 字符串
      */
     public String getFileUrl(String objectName) {
-        String endpoint = minioProperties.getEndpoint();
-        // 容错处理：确保 endpoint 结尾没有多余的斜杠
-        if (endpoint.endsWith("/")) {
-            endpoint = endpoint.substring(0, endpoint.length() - 1);
-        }
-        return endpoint + "/" + minioProperties.getBucketName() + "/" + objectName;
+        return "/" + minioProperties.getBucketName() + "/" + objectName;
     }
 
     /**

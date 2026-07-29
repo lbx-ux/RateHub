@@ -21,4 +21,6 @@ public interface IBlogService {
     Result<?> queryBlogLikes(Long id);
 
     Result<?> deleteBlog(Long id);
+
+    Result<?> queryBlogByfollow(Long max, Integer offset);
 }

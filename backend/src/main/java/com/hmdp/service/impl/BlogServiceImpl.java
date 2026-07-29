@@ -2,6 +2,7 @@ package com.hmdp.service.impl;
 
 import com.github.pagehelper.PageHelper;
 import com.hmdp.dto.Result;
+import com.hmdp.dto.ScrollResult;
 import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.Blog;
 import com.hmdp.mapper.BlogCommentsMapper;
@@ -11,6 +12,7 @@ import com.hmdp.service.IBlogService;
 import com.hmdp.utils.UserHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 
 import com.hmdp.entity.User;
@@ -19,10 +21,7 @@ import cn.hutool.core.bean.BeanUtil;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -210,5 +209,46 @@ public class BlogServiceImpl implements IBlogService {
             }
         }
         return Result.success();
+    }
+
+    @Override
+    public Result<?> queryBlogByfollow(Long max, Integer offset) {
+        Long userId=UserHolder.getUser().getId();
+        String key="feed:"+userId;
+        Set<ZSetOperations.TypedTuple<String>> typedTuples=stringRedisTemplate.opsForZSet().
+                reverseRangeByScoreWithScores(key, 0, max, offset, 3);
+        if(typedTuples==null||typedTuples.isEmpty()){
+            return Result.success();
+        }
+        List<Long> ids=new ArrayList<>(typedTuples.size());
+        long minTime = 0;
+        int os = 1;
+        for (ZSetOperations.TypedTuple<String> tuple : typedTuples) {
+            String blogId = tuple.getValue();
+            ids.add(Long.valueOf(blogId));
+            long time = tuple.getScore().longValue();
+            if (time == minTime) {
+                os++;
+            } else {
+                minTime = time;
+                os = 1;
+            }
+        }
+
+        List<Blog> blogs = new ArrayList<>(ids.size());
+        for (Long id : ids) {
+            Blog blog = blogMapper.getById(id);
+            if (blog != null) {
+                queryBlogUser(blog);
+                isBlogLiked(blog);
+                blogs.add(blog);
+            }
+        }
+
+        ScrollResult r = new ScrollResult();
+        r.setList(blogs);
+        r.setOffset(os);
+        r.setMinTime(minTime);
+        return Result.success(r);
     }
 }
