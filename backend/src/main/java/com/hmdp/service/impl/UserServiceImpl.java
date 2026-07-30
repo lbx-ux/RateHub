@@ -3,6 +3,7 @@ package com.hmdp.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.lang.UUID;
+import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.hmdp.constant.RedisConstants;
@@ -17,13 +18,18 @@ import com.hmdp.service.IUserService;
 import com.hmdp.utils.AliyunCaptchaHelper;
 import com.hmdp.utils.AliyunSmsHelper;
 import com.hmdp.utils.RegexUtils;
+import com.hmdp.utils.UserHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.connection.BitFieldSubCommands;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
-
 import javax.servlet.http.HttpSession;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -208,5 +214,60 @@ public class UserServiceImpl implements IUserService {
         updateUser.setPassword(newMd5);
         userMapper.updatePassword(updateUser);
         return Result.success();
+    }
+
+    @Override
+    public void sign() {
+        Long id = UserHolder.getUser().getId();
+        LocalDateTime now = LocalDateTime.now();
+        String keySuffix = now.format(DateTimeFormatter.ofPattern(":yyyyMM"));
+        String key = "sign:" + id + keySuffix;
+        int day = now.getDayOfMonth();
+        Boolean isSign = stringRedisTemplate.opsForValue().setBit(key, day - 1, true);
+        if(BooleanUtil.isTrue(isSign)){
+            throw new BusinessException("您今天已经签到过了");
+        }
+    }
+
+    @Override
+    public Integer signTotal() {
+        Long id = UserHolder.getUser().getId();
+        LocalDateTime now = LocalDateTime.now();
+        String keySuffix = now.format(DateTimeFormatter.ofPattern(":yyyyMM"));
+        String key = "sign:" + id + keySuffix;
+        Long res = stringRedisTemplate.execute(
+                (RedisCallback<Long>) connection -> connection.bitCount(key.getBytes())
+        );
+        return res==null?0:res.intValue();
+    }
+
+    @Override
+    public Integer signCount() {
+        Long id = UserHolder.getUser().getId();
+        LocalDateTime now = LocalDateTime.now();
+        String keySuffix = now.format(DateTimeFormatter.ofPattern(":yyyyMM"));
+        String key = "sign:" + id + keySuffix;
+        int day = now.getDayOfMonth();
+        List<Long> res = stringRedisTemplate.opsForValue().bitField(
+                key,
+                BitFieldSubCommands.create().get(BitFieldSubCommands.BitFieldType.unsigned(day)).valueAt(0)
+        );
+        if(res==null||res.isEmpty()){
+            return 0;
+        }
+        Long num = res.get(0);
+        if(num==null){
+            return 0;
+        }
+        int count=0;
+        while(true){
+            if((num & 1)==0){
+                break;
+            }else{
+                count++;
+            }
+            num = num>>1;
+        }
+        return count;
     }
 }

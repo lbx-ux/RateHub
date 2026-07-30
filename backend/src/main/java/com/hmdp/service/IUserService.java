@@ -21,4 +21,9 @@ public interface IUserService {
     
     Result updatePassword(String oldPassword, String newPassword);
 
+    void sign();
+
+    Integer signTotal();
+
+    Integer signCount();
 }

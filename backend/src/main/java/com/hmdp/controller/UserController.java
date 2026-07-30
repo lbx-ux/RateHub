@@ -113,4 +113,21 @@ public class UserController {
         UserDTO userDTO = cn.hutool.core.bean.BeanUtil.copyProperties(user, UserDTO.class);
         return Result.success(userDTO);
     }
+
+    @PostMapping("/sign")
+    public Result<Void> sign(){
+        userService.sign();
+        return Result.success();
+    }
+
+    @GetMapping("/sign/total")
+    public Result<Integer> signTotal(){
+        return Result.success(userService.signTotal());
+    }
+
+    @GetMapping("/sign/count")
+    public Result<Integer> signCount(){
+        return Result.success(userService.signCount());
+    }
+
 }

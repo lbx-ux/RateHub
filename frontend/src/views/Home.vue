@@ -32,16 +32,15 @@
         <el-icon class="sign-icon"><Calendar /></el-icon>
         <div class="sign-text">
           <h3>每日签到</h3>
-          <p>本月已连续签到 <span class="highlight">{{ signCount }}</span> 天，坚持签到获取更多专属福利！</p>
+          <p>本月已连续签到 <span class="highlight">{{ signCount }}</span> 天，累计签到 <span class="highlight">{{ totalSignCount }}</span> 天，坚持获取专属福利！</p>
         </div>
       </div>
       <el-button 
-        :type="isSigned ? 'info' : 'warning'" 
+        :type="isSigned ? 'success' : 'warning'" 
         class="sign-btn" 
-        :disabled="isSigned"
         @click="handleSign"
       >
-        {{ isSigned ? '今日已签到' : '立即打卡签到' }}
+        {{ isSigned ? '查看签到数据' : '立即打卡签到' }}
       </el-button>
     </section>
 
@@ -113,6 +112,24 @@
         <span class="finished-text" v-else>已显示全部日记</span>
       </div>
     </section>
+
+    <!-- 签到成功炫酷弹窗 -->
+    <div class="sign-success-overlay" v-if="showSignSuccessModal" @click="showSignSuccessModal = false">
+      <div class="sign-success-box" @click.stop>
+        <div class="confetti-container">
+          <div class="confetti" v-for="i in 12" :key="i" :style="{ left: (i * 7.5 + 5) + '%', animationDelay: (i * 0.1) + 's', backgroundColor: ['#FF3366', '#33CCFF', '#FFCC00', '#33FF66', '#CC33FF'][i % 5] }"></div>
+        </div>
+        <div class="sign-success-icon-wrap">
+          <el-icon class="sign-success-icon"><Trophy /></el-icon>
+        </div>
+        <h2 class="sign-success-title">签到成功！</h2>
+        <p class="sign-success-desc">
+          本月已连续打卡 <span class="highlight-days">{{ signCount }}</span> 天<br>
+          累计打卡 <span class="highlight-days">{{ totalSignCount }}</span> 天
+        </p>
+        <el-button type="primary" round class="sign-success-btn" @click="showSignSuccessModal = false">开心收下</el-button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -120,7 +137,7 @@
 import { ref, onMounted, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Star, StarFilled, ArrowRight, Loading, Calendar } from '@element-plus/icons-vue'
+import { Star, StarFilled, ArrowRight, Loading, Calendar, Trophy } from '@element-plus/icons-vue'
 import request from '../utils/request'
 
 const router = useRouter()
@@ -157,6 +174,8 @@ const finished = ref(false)
 const isLoggedIn = ref(false)
 const isSigned = ref(false)
 const signCount = ref(0)
+const totalSignCount = ref(0)
+const showSignSuccessModal = ref(false)
 
 onMounted(() => {
   const token = sessionStorage.getItem('token')
@@ -213,11 +232,13 @@ const queryTypes = async () => {
 // 签到相关方法
 const checkSignStatus = async () => {
   try {
-    const res = await request.get('/user/sign/count')
-    if (res.code === 200) {
-      signCount.value = res.data
-      // 前端简单判断逻辑：如果返回了天数且不为 0，并且我们假设如果是今天签到了这里会有天数，不过准确判断今天是否签到应该由后端专门返回，这里为了简化演示，只要有签到天数就默认为已签到了，真实业务建议后端返回 isSigned 字段。
-      // 注意：真实业务场景请以后端实际返回格式为准，此处假设为了配合你自己写的后端。
+    const resCount = await request.get('/user/sign/count')
+    if (resCount.code === 200) {
+      signCount.value = resCount.data
+    }
+    const resTotal = await request.get('/user/sign/total')
+    if (resTotal.code === 200) {
+      totalSignCount.value = resTotal.data
     }
   } catch (error) {
     console.error(error)
@@ -225,17 +246,28 @@ const checkSignStatus = async () => {
 }
 
 const handleSign = async () => {
+  if (isSigned.value) {
+    showSignSuccessModal.value = true
+    return
+  }
+
   try {
     const res = await request.post('/user/sign')
-    if (res.code === 200) {
-      ElMessage.success('签到成功！')
-      isSigned.value = true
-      checkSignStatus() // 重新获取连签天数
-    } else {
-      ElMessage.error(res.message || '签到失败')
-    }
+    // 如果没有抛出异常，说明签到成功 (拦截器已经处理了非200的抛出)
+    isSigned.value = true
+    showSignSuccessModal.value = true
+    checkSignStatus() // 重新获取连签天数
   } catch (error) {
-    console.error(error)
+    // 拦截器如果遇到业务错误(code!=200)会 reject 出错误信息字符串
+    const errMsg = (error && error.message) ? error.message : String(error)
+    if (errMsg.includes('已经签到')) {
+      // 容错处理：如果刷新页面后是第一次点，但后端查出已签到
+      isSigned.value = true
+      showSignSuccessModal.value = true
+      checkSignStatus()
+    } else {
+      ElMessage.error(errMsg || '签到失败')
+    }
   }
 }
 
@@ -700,5 +732,125 @@ const toBlogDetail = (id) => {
   100% {
     transform: rotate(360deg);
   }
+}
+
+/* 签到成功炫酷弹窗 */
+.sign-success-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.sign-success-box {
+  background: white;
+  width: 320px;
+  border-radius: 24px;
+  padding: 40px 20px;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  overflow: hidden;
+}
+
+.sign-success-icon-wrap {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #FFD700 0%, #FF8C00 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  box-shadow: 0 10px 20px rgba(255, 140, 0, 0.3);
+  animation: bounceIcon 2s infinite ease-in-out;
+}
+
+.sign-success-icon {
+  font-size: 40px;
+  color: white;
+}
+
+.sign-success-title {
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--rh-text-main);
+  margin-bottom: 10px;
+}
+
+.sign-success-desc {
+  font-size: 15px;
+  color: var(--rh-text-sub);
+  margin-bottom: 24px;
+}
+
+.highlight-days {
+  color: #FF6633;
+  font-size: 24px;
+  font-weight: 900;
+  margin: 0 4px;
+}
+
+.sign-success-btn {
+  width: 80%;
+  height: 44px;
+  font-size: 16px;
+  font-weight: bold;
+  background: linear-gradient(90deg, #FF6633 0%, #FF8C00 100%);
+  border: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+  color: white;
+}
+
+.sign-success-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(255, 102, 51, 0.3);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.8) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes bounceIcon {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.confetti-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.confetti {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  top: -20px;
+  opacity: 0;
+  animation: confettiFall 2s ease-out forwards;
+}
+
+@keyframes confettiFall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(350px) rotate(720deg); opacity: 0; }
 }
 </style>
