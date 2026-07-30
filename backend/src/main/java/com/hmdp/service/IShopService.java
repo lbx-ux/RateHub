@@ -1,6 +1,7 @@
 package com.hmdp.service;
 
 import com.hmdp.dto.Result;
+import com.hmdp.dto.ShopQueryDTO;
 import com.hmdp.dto.ShopVO;
 import com.hmdp.entity.Shop;
 
@@ -13,10 +14,11 @@ public interface IShopService {
     void save(Shop shop);
 
     void updateById(Shop shop);
-
-    List<ShopVO> queryShopByType(Integer typeId, int current, int pageSize, String sortBy);
+    
 
     List<ShopVO> queryShopByName(String name, int current, int pageSize);
 
     Result<Shop> queryShopById(Long id);
+
+    Result<?> queryShopByType(ShopQueryDTO queryDTO);
 }

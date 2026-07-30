@@ -8,6 +8,7 @@ import com.hmdp.entity.Blog;
 import com.hmdp.mapper.BlogCommentsMapper;
 import com.hmdp.mapper.BlogMapper;
 import com.hmdp.mapper.FollowMapper;
+import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.IBlogService;
 import com.hmdp.utils.UserHolder;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class BlogServiceImpl implements IBlogService {
     private final BlogMapper blogMapper;
     private final StringRedisTemplate stringRedisTemplate;
     private final IUserService userService;
+    private final UserMapper userMapper;
     private final FollowMapper followMapper;
     private final BlogCommentsMapper blogCommentsMapper;
 
@@ -130,19 +132,16 @@ public class BlogServiceImpl implements IBlogService {
         // 2. 解析出其中的用户 id 集合 (此时 ids 列表中顺序已经是时间倒序排行：如 [1010, 1001, 1005])
         List<Long> ids = top5.stream().map(Long::valueOf).collect(Collectors.toList());
 
-        // 【难点解析 - MySQL IN 查询乱序问题与解决策略】：
-        // 如果直接用 MyBatis-Plus 的 listByIds(ids) 构建 SQL: SELECT * FROM tb_user WHERE id IN (1010, 1001, 1005)，
-        // MySQL 默认会按照主键 B+ 树的物理大小排列返回（即 1001, 1005, 1010），彻底打乱 Redis 中原本的“时间先后排行”！
-        // 解决办法：
-        // 方案A (SQL原生)：拼装 ORDER BY FIELD(id, 1010, 1001, 1005)。
-        // 方案B (Java内存/单体优选，本项目采用)：因为仅查询 Top 5 个用户，数据量极小且存在单实体查询缓存，
-        // 我们直接利用 Java Stream 顺着有序的 ids 遍历调用 userService.getById(userId)，
-        // 既完全杜绝了 MySQL 乱序问题，保证了点赞排行榜的时间顺序，又最大限度利用了单体查询的高效缓存。
+        List<User> unsortedUsers = userMapper.listByIds(ids);
+        Map<Long,User> userMap=unsortedUsers.stream()
+                .collect(Collectors.toMap(User::getId, user -> user));
+
         List<UserDTO> userDTOList = ids.stream()
-                .map(userService::getById)
+                .map(userMap::get)
                 .filter(Objects::nonNull)
                 .map(user -> BeanUtil.copyProperties(user, UserDTO.class))
                 .collect(Collectors.toList());
+
         return Result.success(userDTOList);
     }
 
@@ -235,14 +234,17 @@ public class BlogServiceImpl implements IBlogService {
             }
         }
 
-        List<Blog> blogs = new ArrayList<>(ids.size());
-        for (Long id : ids) {
-            Blog blog = blogMapper.getById(id);
-            if (blog != null) {
-                queryBlogUser(blog);
-                isBlogLiked(blog);
-                blogs.add(blog);
-            }
+        List<Blog> unsortedBlogs=blogMapper.selectByIds(ids);
+        Map<Long,Blog> blogMap=unsortedBlogs.stream()
+                .collect(Collectors.toMap(Blog::getId, blog -> blog));
+        List<Blog> blogs=ids.stream()
+                .map(blogMap::get)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        for (Blog blog : blogs) {
+            queryBlogUser(blog);
+            isBlogLiked(blog);
         }
 
         ScrollResult r = new ScrollResult();

@@ -26,6 +26,25 @@
       </el-carousel>
     </section>
 
+    <!-- 1.5 每日签到模块 -->
+    <section class="sign-in-section rh-card" v-if="isLoggedIn">
+      <div class="sign-left">
+        <el-icon class="sign-icon"><Calendar /></el-icon>
+        <div class="sign-text">
+          <h3>每日签到</h3>
+          <p>本月已连续签到 <span class="highlight">{{ signCount }}</span> 天，坚持签到获取更多专属福利！</p>
+        </div>
+      </div>
+      <el-button 
+        :type="isSigned ? 'info' : 'warning'" 
+        class="sign-btn" 
+        :disabled="isSigned"
+        @click="handleSign"
+      >
+        {{ isSigned ? '今日已签到' : '立即打卡签到' }}
+      </el-button>
+    </section>
+
     <!-- 2. PC 功能分类网格 (原 types) -->
     <section class="categories-section rh-card">
       <div 
@@ -101,7 +120,7 @@
 import { ref, onMounted, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Star, StarFilled, ArrowRight, Loading } from '@element-plus/icons-vue'
+import { Star, StarFilled, ArrowRight, Loading, Calendar } from '@element-plus/icons-vue'
 import request from '../utils/request'
 
 const router = useRouter()
@@ -134,7 +153,18 @@ const current = ref(1)
 const loading = ref(false)
 const finished = ref(false)
 
+// 签到相关状态
+const isLoggedIn = ref(false)
+const isSigned = ref(false)
+const signCount = ref(0)
+
 onMounted(() => {
+  const token = sessionStorage.getItem('token')
+  if (token) {
+    isLoggedIn.value = true
+    checkSignStatus()
+  }
+
   queryTypes()
   queryHotBlogs()
   
@@ -174,6 +204,35 @@ const queryTypes = async () => {
     const res = await request.get('/shop-type/list')
     if (res.code === 200) {
       types.value = res.data
+    }
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+// 签到相关方法
+const checkSignStatus = async () => {
+  try {
+    const res = await request.get('/user/sign/count')
+    if (res.code === 200) {
+      signCount.value = res.data
+      // 前端简单判断逻辑：如果返回了天数且不为 0，并且我们假设如果是今天签到了这里会有天数，不过准确判断今天是否签到应该由后端专门返回，这里为了简化演示，只要有签到天数就默认为已签到了，真实业务建议后端返回 isSigned 字段。
+      // 注意：真实业务场景请以后端实际返回格式为准，此处假设为了配合你自己写的后端。
+    }
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+const handleSign = async () => {
+  try {
+    const res = await request.post('/user/sign')
+    if (res.code === 200) {
+      ElMessage.success('签到成功！')
+      isSigned.value = true
+      checkSignStatus() // 重新获取连签天数
+    } else {
+      ElMessage.error(res.message || '签到失败')
     }
   } catch (error) {
     console.error(error)
@@ -313,6 +372,63 @@ const toBlogDetail = (id) => {
   font-weight: 700;
   padding: 0 24px;
   margin-top: 8px;
+}
+
+/* 签到模块 */
+.sign-in-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 32px;
+  background: linear-gradient(135deg, #FFFDF8 0%, #FFF 100%);
+  border-left: 4px solid #FFC107;
+}
+
+.sign-in-section:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+}
+
+.sign-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.sign-icon {
+  font-size: 36px;
+  color: #FFC107;
+  background: #FFF9E0;
+  padding: 10px;
+  border-radius: 14px;
+}
+
+.sign-text h3 {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--rh-text-main);
+  margin-bottom: 4px;
+}
+
+.sign-text p {
+  font-size: 13px;
+  color: var(--rh-text-sub);
+}
+
+.sign-text .highlight {
+  color: #FF6633;
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0 2px;
+}
+
+.sign-btn {
+  border-radius: 24px !important;
+  font-weight: 700;
+  padding: 0 32px;
+  height: 44px;
+  font-size: 15px;
+  letter-spacing: 1px;
 }
 
 /* 分类金刚区 */

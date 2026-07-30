@@ -55,4 +55,13 @@ public interface ShopMapper {
             "</where>" +
             "</script>")
     List<ShopVO> queryShopByName(@Param("name") String name);
+
+    @Select("SELECT * FROM tb_shop")
+    List<Shop> selectAll();
+
+    List<Shop> queryShopById(List<Long> ids);
+
+    List<ShopVO> queryShopVOByIds(@Param("ids") List<Long> ids);
+
+    List<ShopVO> queryShopVOByIdsWithSort(@Param("ids") List<Long> ids, @Param("sortBy") String sortBy);
 }

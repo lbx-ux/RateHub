@@ -33,4 +33,6 @@ public interface BlogMapper {
 
     @Delete("DELETE FROM tb_blog WHERE id = #{id}")
     int deleteById(Long id);
+
+    List<Blog> selectByIds(List<Long> ids);
 }

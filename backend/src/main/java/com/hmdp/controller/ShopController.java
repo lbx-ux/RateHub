@@ -3,6 +3,7 @@ package com.hmdp.controller;
 
 import cn.hutool.core.util.StrUtil;
 import com.hmdp.dto.Result;
+import com.hmdp.dto.ShopQueryDTO;
 import com.hmdp.dto.ShopVO;
 import com.hmdp.entity.Shop;
 import com.hmdp.service.IShopService;
@@ -21,7 +22,6 @@ import static com.hmdp.constant.RedisConstants.CACHE_SHOP_KEY;
 @RequiredArgsConstructor
 public class ShopController {
     private  final IShopService shopService;
-    private final StringRedisTemplate stringRedisTemplate;
     /**
      * 根据id查询商铺信息
      * @param id 商铺id
@@ -57,22 +57,11 @@ public class ShopController {
         return Result.success();
     }
 
-    /**
-     * 根据商铺类型分页查询商铺信息
-     * @param typeId 商铺类型
-     * @param current 页码
-     * @return 商铺列表
-     */
+
+    // 分页查询商铺信息
     @GetMapping("/of/type")
-    public Result queryShopByType(
-            @RequestParam("typeId") Integer typeId,
-            @RequestParam(value = "current", defaultValue = "1") Integer current,
-            @RequestParam(value = "sortBy", required = false) String sortBy
-    ) {
-        // 根据类型分页查询
-        List<ShopVO> list = shopService.queryShopByType(typeId, current, SystemConstants.DEFAULT_PAGE_SIZE, sortBy);
-        // 返回数据
-        return Result.success(list);
+    public Result<?> queryShopByType(ShopQueryDTO queryDTO) {
+        return shopService.queryShopByType(queryDTO);
     }
 
     /**

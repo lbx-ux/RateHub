@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hmdp.mapper.ShopMapper">
+    <select id="queryShopById" resultType="com.hmdp.entity.Shop">
+        select * from tb_shop
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="queryShopVOByIds" resultType="com.hmdp.dto.ShopVO">
+        SELECT s.*,
+            (EXISTS (SELECT 1 FROM tb_voucher v WHERE v.shop_id = s.id)) AS has_voucher
+        FROM tb_shop s
+        WHERE s.id IN
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="queryShopVOByIdsWithSort" resultType="com.hmdp.dto.ShopVO">
+        SELECT s.*,
+            (EXISTS (SELECT 1 FROM tb_voucher v WHERE v.shop_id = s.id)) AS has_voucher
+        FROM tb_shop s
+        WHERE s.id IN
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+        <choose>
+            <when test='sortBy != null and sortBy == "comments"'>
+                ORDER BY s.comments DESC
+            </when>
+            <when test='sortBy != null and sortBy == "score"'>
+                ORDER BY s.score DESC
+            </when>
+        </choose>
+    </select>
+</mapper>

@@ -70,6 +70,43 @@
           </span>
         </div>
       </div>
+
+      <div class="divider"></div>
+
+      <!-- 2.3 距离行 -->
+      <div class="filter-row">
+        <span class="row-label">距离范围：</span>
+        <div class="row-items">
+          <span 
+            class="filter-tag"
+            :class="{ 'active': params.distance === '' }"
+            @click="changeDistance('')"
+          >
+            不限
+          </span>
+          <span 
+            class="filter-tag"
+            :class="{ 'active': params.distance === '1000' }"
+            @click="changeDistance('1000')"
+          >
+            附近 1km
+          </span>
+          <span 
+            class="filter-tag"
+            :class="{ 'active': params.distance === '3000' }"
+            @click="changeDistance('3000')"
+          >
+            附近 3km
+          </span>
+          <span 
+            class="filter-tag"
+            :class="{ 'active': params.distance === '5000' }"
+            @click="changeDistance('5000')"
+          >
+            附近 5km
+          </span>
+        </div>
+      </div>
     </section>
 
     <!-- 3. PC 宽幅商户列表与右侧推荐栏 (双栏布局) -->
@@ -195,13 +232,16 @@ const params = reactive({
   typeId: route.query.type || '1',
   current: 1,
   sortBy: '',
+  distance: '',
   x: 120.149993,
   y: 30.334229
 })
 
 onMounted(() => {
+  // 前端写死使用默认位置，不再请求浏览器的真实地理位置
   queryShops()
   queryTopShops()
+  
   queryTypes()
   
   // 绑定滚动加载 (PC)
@@ -215,6 +255,7 @@ const queryTopShops = async () => {
         typeId: params.typeId, 
         current: 1, 
         sortBy: 'score', 
+        distance: params.distance,
         x: params.x, 
         y: params.y 
       }
@@ -283,6 +324,11 @@ const selectType = (t) => {
 
 const changeSort = (sortField) => {
   params.sortBy = sortField
+  queryShops(true)
+}
+
+const changeDistance = (dist) => {
+  params.distance = dist
   queryShops(true)
 }
 
