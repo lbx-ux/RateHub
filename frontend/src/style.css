@@ -160,3 +160,38 @@ a:hover {
 .text-pretty {
   text-wrap: pretty;
 }
+
+/* --- RateHub 极客风美化增强 --- */
+
+/* 1. 品牌色文字选中高亮 */
+::selection {
+  background-color: var(--rh-primary);
+  color: #fff;
+}
+
+/* 2. Slide-fade 页面平滑过渡动效 */
+.slide-fade-enter-active {
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.slide-fade-leave-active {
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.slide-fade-enter-from {
+  opacity: 0;
+  transform: translateY(15px);
+}
+.slide-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-15px);
+}
+
+/* 3. 视口滚动展现特效 (v-reveal) */
+.reveal-item {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.reveal-item.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}

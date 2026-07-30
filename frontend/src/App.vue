@@ -19,12 +19,12 @@ const showHeader = computed(() => {
     <!-- 主版面渲染 -->
     <main class="rh-main-content">
       <router-view v-slot="{ Component }">
-        <transition name="fade" mode="out-in">
+        <transition name="slide-fade" mode="out-in">
           <keep-alive>
             <component :is="Component" v-if="route.meta.keepAlive" :key="route.fullPath" />
           </keep-alive>
         </transition>
-        <transition name="fade" mode="out-in">
+        <transition name="slide-fade" mode="out-in">
           <component :is="Component" v-if="!route.meta.keepAlive" :key="route.fullPath" />
         </transition>
       </router-view>
@@ -40,16 +40,7 @@ const showHeader = computed(() => {
 </template>
 
 <style>
-/* 全局页面平滑过渡动效 */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.25s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
+/* 全局页面平滑过渡动效 (Slide-fade) 已经迁移到全局 style.css 中统一管理 */
 
 /* 页脚样式 */
 .rh-footer {

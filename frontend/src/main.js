@@ -19,4 +19,20 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }
 
+// 注册 v-reveal 视口交叉观察器指令 (用于滚动动效)
+app.directive('reveal', {
+  mounted(el) {
+    el.classList.add('reveal-item')
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          el.classList.add('is-visible')
+          observer.unobserve(el) // 动画只执行一次
+        }
+      })
+    }, { threshold: 0.1 })
+    observer.observe(el)
+  }
+})
+
 app.mount('#app')

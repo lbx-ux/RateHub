@@ -2,7 +2,7 @@
   <div class="home-pc-container rh-container" @scroll="onScroll">
     <!-- 1. 宽屏横幅轮播 (PC 尺寸) -->
     <section class="banner-section">
-      <el-carousel height="340px" class="pc-carousel" motion-blur>
+      <el-carousel height="340px" class="pc-carousel">
         <el-carousel-item>
           <div class="banner-slide slide1">
             <div class="slide-content">
@@ -23,11 +23,37 @@
             </div>
           </div>
         </el-carousel-item>
+        <el-carousel-item>
+          <div class="banner-slide slide3">
+            <div class="slide-content uv-slide-content">
+              <span class="slide-tag" style="background-color: #67C23A;">平台数据</span>
+              <h2>RateHub 流量监控盘</h2>
+              <p>实时统计全站独立访客 (UV) 趋势数据</p>
+              
+              <div class="uv-stats-board">
+                <div class="uv-board-item">
+                  <span class="uv-board-label">今日UV</span>
+                  <span class="uv-board-val">{{ uvStats.daily }}</span>
+                </div>
+                <div class="uv-board-divider"></div>
+                <div class="uv-board-item">
+                  <span class="uv-board-label">本周UV</span>
+                  <span class="uv-board-val">{{ uvStats.weekly }}</span>
+                </div>
+                <div class="uv-board-divider"></div>
+                <div class="uv-board-item">
+                  <span class="uv-board-label">30天UV</span>
+                  <span class="uv-board-val">{{ uvStats.monthly }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </el-carousel-item>
       </el-carousel>
     </section>
 
     <!-- 1.5 每日签到模块 -->
-    <section class="sign-in-section rh-card" v-if="isLoggedIn">
+    <section class="sign-in-section rh-card">
       <div class="sign-left">
         <el-icon class="sign-icon"><Calendar /></el-icon>
         <div class="sign-text">
@@ -36,27 +62,12 @@
         </div>
       </div>
       <el-button 
-        :type="isSigned ? 'success' : 'warning'" 
+        :type="!isLoggedIn ? 'primary' : (isSigned ? 'success' : 'warning')" 
         class="sign-btn" 
         @click="handleSign"
       >
-        {{ isSigned ? '查看签到数据' : '立即打卡签到' }}
+        {{ !isLoggedIn ? '登录 / 注册' : (isSigned ? '查看签到数据' : '立即打卡签到') }}
       </el-button>
-    </section>
-
-    <!-- 2. PC 功能分类网格 (原 types) -->
-    <section class="categories-section rh-card">
-      <div 
-        v-for="t in types" 
-        :key="t.id" 
-        class="category-item-card"
-        @click="toCategory(t.id, t.name)"
-      >
-        <div class="cat-icon-container" :style="getCategoryStyle(t.name)">
-          <img :src="'/imgs/' + t.icon" :alt="t.name" class="cat-img" />
-        </div>
-        <span class="cat-name">{{ t.name }}</span>
-      </div>
     </section>
 
     <!-- 3. PC 探店日记瀑布网格 -->
@@ -69,14 +80,35 @@
         <span class="section-desc">探店达人真实试吃与心水安利</span>
       </div>
 
-      <!-- 三栏瀑布布局 -->
-      <div class="blogs-grid">
-        <div 
-          v-for="b in blogs" 
-          :key="b.id" 
-          class="blog-pc-card rh-card"
-          @click="toBlogDetail(b.id)"
-        >
+      <!-- 骨架屏占位 -->
+      <el-skeleton :loading="loading && blogs.length === 0" animated>
+        <template #template>
+          <div class="blogs-grid">
+            <div class="blog-pc-card rh-card" style="padding: 0; overflow: hidden;" v-for="i in 6" :key="i">
+              <el-skeleton-item variant="image" style="width: 100%; height: 220px;" />
+              <div style="padding: 16px;">
+                <el-skeleton-item variant="h3" style="width: 70%; margin-bottom: 16px;" />
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <div style="display: flex; align-items: center; width: 50%;">
+                    <el-skeleton-item variant="circle" style="width: 28px; height: 28px; margin-right: 8px;" />
+                    <el-skeleton-item variant="text" style="width: 60%;" />
+                  </div>
+                  <el-skeleton-item variant="text" style="width: 30%;" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+        <template #default>
+          <!-- 三栏瀑布布局 -->
+          <div class="blogs-grid">
+            <div 
+              v-for="b in blogs" 
+              :key="b.id" 
+              class="blog-pc-card rh-card"
+              v-reveal
+              @click="toBlogDetail(b.id)"
+            >
           <div class="blog-image-box">
             <img :src="b.img" alt="Blog cover" class="blog-cover" />
             <!-- 精致浮动点赞标记 -->
@@ -102,8 +134,10 @@
               </span>
             </div>
           </div>
-        </div>
-      </div>
+            </div>
+          </div>
+        </template>
+      </el-skeleton>
 
       <!-- 加载状态 -->
       <div class="loading-bar">
@@ -142,29 +176,7 @@ import request from '../utils/request'
 
 const router = useRouter()
 
-const getCategoryStyle = (name) => {
-  const colorMap = {
-    '美食': { bg: 'linear-gradient(135deg, #FFF6F3 0%, #FFEFEA 100%)', border: 'rgba(255, 102, 51, 0.2)', shadow: 'rgba(255, 102, 51, 0.35)' },
-    'KTV': { bg: 'linear-gradient(135deg, #F8F5FF 0%, #F1EAFF 100%)', border: 'rgba(127, 0, 255, 0.2)', shadow: 'rgba(127, 0, 255, 0.35)' },
-    '丽人·美发': { bg: 'linear-gradient(135deg, #FFF3F8 0%, #FFE5F1 100%)', border: 'rgba(255, 20, 147, 0.2)', shadow: 'rgba(255, 20, 147, 0.35)' },
-    '美发美睫': { bg: 'linear-gradient(135deg, #FFF3F5 0%, #FFE5EC 100%)', border: 'rgba(248, 87, 166, 0.2)', shadow: 'rgba(248, 87, 166, 0.35)' },
-    '美甲美睫': { bg: 'linear-gradient(135deg, #FFF3F5 0%, #FFE5EC 100%)', border: 'rgba(248, 87, 166, 0.2)', shadow: 'rgba(248, 87, 166, 0.35)' },
-    '按摩·足疗': { bg: 'linear-gradient(135deg, #F3FAF6 0%, #E8F7EE 100%)', border: 'rgba(17, 153, 142, 0.2)', shadow: 'rgba(17, 153, 142, 0.35)' },
-    '美容SPA': { bg: 'linear-gradient(135deg, #F0FBFC 0%, #E0F7F9 100%)', border: 'rgba(0, 188, 212, 0.2)', shadow: 'rgba(0, 188, 212, 0.35)' },
-    '亲子游乐': { bg: 'linear-gradient(135deg, #FFFDF0 0%, #FFF9E0 100%)', border: 'rgba(255, 193, 7, 0.25)', shadow: 'rgba(255, 193, 7, 0.35)' },
-    '酒吧': { bg: 'linear-gradient(135deg, #F5F7FA 0%, #ECEFF1 100%)', border: 'rgba(96, 125, 139, 0.25)', shadow: 'rgba(96, 125, 139, 0.35)' },
-    '轰趴馆': { bg: 'linear-gradient(135deg, #FAF5FC 0%, #F3E5F5 100%)', border: 'rgba(156, 39, 176, 0.2)', shadow: 'rgba(156, 39, 176, 0.35)' },
-    '健身运动': { bg: 'linear-gradient(135deg, #F0F8FF 0%, #E6F2FF 100%)', border: 'rgba(33, 150, 243, 0.2)', shadow: 'rgba(33, 150, 243, 0.35)' }
-  }
-  const config = colorMap[name] || colorMap['美食']
-  return {
-    '--cat-bg': config.bg,
-    '--cat-border': config.border,
-    '--cat-shadow': config.shadow
-  }
-}
 
-const types = ref([])
 const blogs = ref([])
 const current = ref(1)
 const loading = ref(false)
@@ -177,15 +189,32 @@ const signCount = ref(0)
 const totalSignCount = ref(0)
 const showSignSuccessModal = ref(false)
 
+// UV统计数据
+const uvStats = ref({
+  daily: '--',
+  weekly: '--',
+  monthly: '--'
+})
+
+const fetchUvStats = async () => {
+  try {
+    const res = await request.get('/uv/stats')
+    if (res.code === 200 && res.data) {
+      uvStats.value = res.data
+    }
+  } catch (error) {
+    console.error('Failed to fetch UV stats:', error)
+  }
+}
+
 onMounted(() => {
   const token = sessionStorage.getItem('token')
   if (token) {
     isLoggedIn.value = true
     checkSignStatus()
   }
-
-  queryTypes()
   queryHotBlogs()
+  fetchUvStats()
   
   // 绑定全局滚动监听 (针对 PC 宽屏)
   window.addEventListener('scroll', handleWindowScroll)
@@ -194,6 +223,17 @@ onMounted(() => {
 onActivated(() => {
   // 当从博文详情页等路由返回首页时（由于 keep-alive 页面缓存），触发 onActivated 静默对齐点赞状态
   refreshBlogsStatus()
+  
+  // 当从登录页返回首页时，检查登录状态并刷新签到数据
+  const token = sessionStorage.getItem('token')
+  if (token) {
+    isLoggedIn.value = true
+    checkSignStatus()
+  } else {
+    isLoggedIn.value = false
+    signCount.value = 0
+    totalSignCount.value = 0
+  }
 })
 
 const refreshBlogsStatus = async () => {
@@ -218,16 +258,6 @@ const refreshBlogsStatus = async () => {
   }
 }
 
-const queryTypes = async () => {
-  try {
-    const res = await request.get('/shop-type/list')
-    if (res.code === 200) {
-      types.value = res.data
-    }
-  } catch (error) {
-    console.error(error)
-  }
-}
 
 // 签到相关方法
 const checkSignStatus = async () => {
@@ -246,6 +276,11 @@ const checkSignStatus = async () => {
 }
 
 const handleSign = async () => {
+  if (!isLoggedIn.value) {
+    router.push('/login')
+    return
+  }
+
   if (isSigned.value) {
     showSignSuccessModal.value = true
     return
@@ -362,11 +397,50 @@ const toBlogDetail = (id) => {
 }
 
 .slide1 {
-  background: linear-gradient(90deg, rgba(26, 26, 26, 0.9) 0%, rgba(26, 26, 26, 0.2) 100%), url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1200&auto=format&fit=crop') no-repeat center/cover;
+  background: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1200&auto=format&fit=crop') no-repeat center/cover;
 }
 
 .slide2 {
-  background: linear-gradient(90deg, rgba(26, 26, 26, 0.9) 0%, rgba(26, 26, 26, 0.2) 100%), url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1200&auto=format&fit=crop') no-repeat center/cover;
+  background: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1200&auto=format&fit=crop') no-repeat center/cover;
+}
+
+.slide3 {
+  background: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), url('https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=1200&auto=format&fit=crop') no-repeat center/cover;
+}
+
+/* UV 数据看板特效 */
+.uv-slide-content {
+  max-width: 600px;
+}
+.uv-stats-board {
+  display: flex;
+  align-items: center;
+  padding: 16px 0;
+  margin-top: 10px;
+  gap: 32px;
+}
+.uv-board-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+}
+.uv-board-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 6px;
+}
+.uv-board-val {
+  font-size: 28px;
+  font-weight: 900;
+  color: #FFF;
+  font-family: monospace;
+  text-shadow: 0 2px 10px rgba(103, 194, 58, 0.5);
+}
+.uv-board-divider {
+  width: 1px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .slide-content {
@@ -374,36 +448,50 @@ const toBlogDetail = (id) => {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 12px;
+  gap: 14px;
+  transform: translateY(0);
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.slide-content:hover {
+  transform: translateY(-6px);
 }
 
 .slide-tag {
-  background-color: var(--rh-primary);
-  font-size: 11px;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 4px;
+  background: linear-gradient(135deg, var(--rh-primary) 0%, #FF8855 100%);
+  font-size: 12px;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: 6px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 10px rgba(255, 102, 51, 0.3);
 }
 
 .slide-content h2 {
-  font-size: 32px;
-  font-weight: 800;
+  font-size: 38px;
+  font-weight: 900;
   line-height: 1.2;
+  color: #FFF;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  margin: 4px 0;
 }
 
 .slide-content p {
-  font-size: 14px;
-  opacity: 0.85;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.5;
+  margin-bottom: 8px;
 }
 
 .slide-btn {
-  height: 40px;
-  border-radius: 20px !important;
-  font-weight: 700;
-  padding: 0 24px;
-  margin-top: 8px;
+  height: 44px;
+  border-radius: 22px !important;
+  font-weight: 800;
+  padding: 0 28px;
+  margin-top: 4px;
+  font-size: 15px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
 /* 签到模块 */
@@ -412,7 +500,6 @@ const toBlogDetail = (id) => {
   align-items: center;
   justify-content: space-between;
   padding: 20px 32px;
-  background: linear-gradient(135deg, #FFFDF8 0%, #FFF 100%);
   border-left: 4px solid #FFC107;
 }
 
@@ -463,73 +550,7 @@ const toBlogDetail = (id) => {
   letter-spacing: 1px;
 }
 
-/* 分类金刚区 */
-.categories-section {
-  display: grid;
-  grid-template-columns: repeat(10, 1fr); /* PC 宽屏 10列排版 */
-  gap: 16px;
-  background: #FFF;
-  padding: 24px;
-  justify-items: center;
-  /* 声明默认 CSS 变量以消除 IDE 未知变量报错，实际渲染由 Vue 动态内联注入覆盖 */
-  --cat-bg: var(--rh-primary-light);
-  --cat-border: rgba(255, 102, 51, 0.15);
-  --cat-shadow: rgba(255, 102, 51, 0.35);
-}
 
-.categories-section:hover {
-  transform: none; /* 容器不悬浮 */
-}
-
-.category-item-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  width: 100%;
-}
-
-.cat-icon-container {
-  width: 60px;
-  height: 60px;
-  background: var(--cat-bg, var(--rh-primary-light));
-  border: 1px solid var(--cat-border, rgba(255, 102, 51, 0.15));
-  border-radius: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: var(--rh-spring-transition);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
-}
-
-.category-item-card:hover .cat-icon-container {
-  transform: translateY(-6px) scale(1.08);
-  box-shadow: 0 10px 20px -5px var(--cat-shadow, rgba(255, 102, 51, 0.35));
-  border-color: transparent;
-}
-
-.cat-img {
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
-  transition: var(--rh-spring-transition);
-}
-
-.category-item-card:hover .cat-img {
-  transform: scale(1.12) rotate(3deg);
-}
-
-.cat-name {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--rh-text-main);
-  transition: var(--rh-transition);
-}
-
-.category-item-card:hover .cat-name {
-  color: var(--rh-primary);
-}
 
 /* 探店日记标题层级 */
 .title-left {
@@ -561,7 +582,6 @@ const toBlogDetail = (id) => {
 .blog-pc-card {
   padding: 0;
   overflow: hidden;
-  background: #FFF;
   display: flex;
   flex-direction: column;
 }
